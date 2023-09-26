@@ -366,21 +366,56 @@ GO
 CREATE PROCEDURE updLoan @ModifierId int, @Id int, 
 @UserId int = NULL, 
 @DateIssue datetime = NULL, 
-@DateCompletion datetime = NULL
+@DateCompletion datetime = NULL,
+@StatusId int = NULL
 AS
 if (dbo.checkUserRole(@ModifierId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
 	if (@UserId is NULL) SET @UserId = (SELECT userId FROM Loans WHERE id = @Id);
 	if (@DateIssue is NULL) SET @DateIssue = (SELECT dateIssue FROM Loans WHERE id = @Id);
-	if (@DateCompletion is NULL) SET @DateCompletion = (SELECT @DateCompletion FROM Loans WHERE id = @Id);
-	UPDATE Loans SET userId = @UserId, dateIssue = @DateIssue, dateCompletion = @DateCompletion, dateUpdate = GETDATE()
+	if (@DateCompletion is NULL) SET @DateCompletion = (SELECT dateCompletion FROM Loans WHERE id = @Id);
+	if (@StatusId is NULL) SET @StatusId = (SELECT statusId FROM Loans WHERE id = @Id);
+	UPDATE Loans SET userId = @UserId, dateIssue = @DateIssue, dateCompletion = @DateCompletion,statusId = @StatusId, dateUpdate = GETDATE()
 	WHERE id = @Id
 END;
 GO
 
 --VISTAS
-
-
+CREATE VIEW LoanedBooks AS 
+	SELECT * FROM Books 
+	WHERE id IN(SELECT bookId FROM Loans WHERE statusId = 1);
+GO
+CREATE VIEW AvailableBooks AS 
+	SELECT * FROM Books 
+	WHERE id NOT IN (SELECT bookId FROM Loans WHERE statusId = 1);
+GO
+CREATE VIEW UsersWithLoans AS 
+	SELECT * FROM Users 
+	WHERE id IN(SELECT userId FROM Loans WHERE statusId = 1);
+GO
+CREATE VIEW UsersWithoutLoans AS
+	SELECT * FROM Users 
+	WHERE id NOT IN(SELECT userId FROM Loans WHERE statusId = 1);
+GO
+CREATE VIEW LoansUsersBooks  AS 
+	SELECT Loans.id,u.id as 'User Id', u.firstName, u.lastName,b.id as 'Book Id', b.title, dateIssue, dateCompletion FROM  Loans
+	JOIN Users AS u ON userId = u.id
+	JOIN Books AS b on bookId = b.id;
+GO
+CREATE VIEW BooksLocations AS
+	SELECT  bo.id AS 'Book Id', bo.title AS 'Book Name',
+		se.id AS 'Section Id', se.name AS 'Section Name', 
+		sh.id AS 'Shelf Id', sh.name as 'Shelf Name', 
+		ra.id AS 'Rack Id', ra.name AS 'Rack Name',
+		ro.id AS 'Room Id', ro.name AS 'Room Name',
+		br.id AS 'Branch Id', br.name AS 'Branch Name'
+		FROM Books as bo
+	JOIN Sections AS se ON bo.sectionId = se.id
+	JOIN Shelves AS sh ON se.ShelfId = sh.id
+	JOIN Racks AS ra ON sh.rackId = ra.id
+	JOIN Rooms AS ro ON ra.roomId = ro.id
+	JOIN Branches AS br ON ro.branchId = br.id;
+GO --hice esta vista porque es la mas amplia, con algunos WHERE podes ver todos los libros de una sucursal, o seccion, etc. Ademas, tambien podes limitar los campos
 --Crear Registros
 insert into Roles (name, description)
 	values ('User', 'Usuario');
@@ -398,7 +433,6 @@ VALUES ('Pedro','Admin','12345678','01-01-1991','1234567890','pedro@admin.com',3
 exec insBranch 1,'La de Pilar', 'Pilar', 42;
 exec insBranch 1,'La de Campana', 'Campana', 55;
 exec delBranch 1,2;
-SELECT * FROM branches;
 exec insRoom 1,'Room 1', 1;
 exec insRack 1,'Rack 1', 1;
 exec insShelf 1,'Shelf 1',1;
@@ -407,5 +441,4 @@ exec insBook 1,1, 'El hombre que calculaba', '33343434', 'Buen Libro?', 8;
 set dateformat dmy;
 exec insUser 1,'Gonzalo', 'Lattanzio','43598878','27-09-2001','1167918562','gonzalattanzio@gmail.com',1;
 exec insLoan 1, 1, 2, '21-09-2023','23-10-2023',1;
-SELECT * FROM loans;
-
+--exec updLoan 1, 1, @StatusId = 2;
