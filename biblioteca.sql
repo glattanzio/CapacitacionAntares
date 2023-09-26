@@ -69,7 +69,6 @@ create table Books(
 	isbn varchar(13), --codigo alfanumerico International Standard Book Number, puede ser util para buscar un libro.
 	synopsis text,
 	rating int,
-	isAvailable bit default 1,
 	dateCreation datetime default getdate() not null,
 	dateUpdate datetime default getdate() not null,
 	isActive bit default 1 not null,
@@ -101,7 +100,15 @@ create table Users(
 	primary key (id),
 	constraint FK_Users_Roles foreign key (rolId) references Roles(id)
 );
-
+create table States(
+	id int identity,
+	name varchar(30) unique,
+	description text,
+	dateCreation datetime default getdate() not null,
+	dateUpdate datetime default getdate() not null,
+	isActive bit default 1 not null,
+	primary key (id)
+);
 create table Loans(
 	id int identity,
 	bookId int not null,
@@ -114,7 +121,8 @@ create table Loans(
 	isActive bit default 1 not null,
 	primary key (id),
 	constraint FK_Loans_Users foreign key (userId) references Users(id),
-	constraint FK_loans_books foreign key (bookId) references Books(id),
+	constraint FK_Loans_Books foreign key (bookId) references Books(id),
+	constraint FK_Loans_States foreign key (statusId) references States(id)
 );
 GO
 /* Procedures- Agregar libro, borrar libro, mover libro, agregar usuario, modificar rol, borrar usuario, crear prestamo, concluir prestamo, devolver libro
@@ -135,135 +143,253 @@ END;
 GO
 --PROCEDURES
 --Branches
-CREATE PROCEDURE insBranch @UserId, @Name varchar(30), @City varchar(20), @Employees int
+CREATE PROCEDURE insBranch @UserId int, @Name varchar(30), @City varchar(30), @Employees int
 AS
-if 
-INSERT INTO branches (name, city, employees)
-VALUES (@Name, @City, @Employees)
+if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+BEGIN
+	INSERT INTO Branches (name, city, employees)
+	VALUES (@Name, @City, @Employees)
+END;
 GO
-CREATE PROCEDURE delBranch @Id int
+CREATE PROCEDURE delBranch @UserId int, @Id int
 AS
-UPDATE branches set active = 'n' 
-WHERE id=@Id
+if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+BEGIN
+	UPDATE Branches set isActive = 0, dateUpdate = GETDATE()
+	WHERE id=@Id
+END;
 GO
-CREATE PROCEDURE updBranch @Id int,
+CREATE PROCEDURE updBranch @UserId int, @Id int,
 	@Name varchar(30) = NULL,
-	@City varchar(20) = NULL, 
+	@City varchar(30) = NULL, 
 	@Employees int = NULL
 AS
-	if (@Name is  NULL) SET @Name = (SELECT name FROM branches WHERE id = @Id);
-	if (@City is NULL) SET @City = (SELECT city FROM branches WHERE id = @Id);
-	if (@Employees is NULL) SET @Employees = (SELECT employees FROM branches WHERE id = @Id);
-	UPDATE branches SET name = @Name, city = @City, employees = @Employees
+if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+BEGIN
+	if (@Name is  NULL) SET @Name = (SELECT name FROM Branches WHERE id = @Id);
+	if (@City is NULL) SET @City = (SELECT city FROM Branches WHERE id = @Id);
+	if (@Employees is NULL) SET @Employees = (SELECT employees FROM Branches WHERE id = @Id);
+	UPDATE Branches SET name = @Name, city = @City, employees = @Employees, dateUpdate = GETDATE()
 	WHERE id = @Id
+END;
 GO
 --Rooms
-CREATE PROCEDURE insRoom @Name varchar(30), @Branch_id int
+CREATE PROCEDURE insRoom @UserId int, @Name varchar(30), @BranchId int
 AS
-INSERT INTO rooms (name, branch_id)
-VALUES (@Name, @Branch_id)
+if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+BEGIN
+	INSERT INTO Rooms (name, branchId)
+	VALUES (@Name, @BranchId)
+END;
 GO
-CREATE PROCEDURE delRoom @Id int
+CREATE PROCEDURE delRoom @UserId int, @Id int
 AS
-UPDATE rooms SET active = 'n'
-WHERE id = @Id
+if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+BEGIN
+	UPDATE Sections SET isActive =0, dateUpdate = getdate()
+	WHERE id = @Id
+END;
 GO
-
+CREATE PROCEDURE updRoom @UserId int, @Id int, @BranchId int --no pongo valor por defecto, como es el unico dato a cargar lo tiene que cargar
+AS
+if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+BEGIN
+	UPDATE Rooms SET branchId = @BranchId, dateUpdate = GETDATE()
+	WHERE id = @Id
+END;
+GO
 --Racks
-CREATE PROCEDURE AddRack @Name varchar(30), @Room_id int
+CREATE PROCEDURE insRack @UserId int, @Name varchar(30), @RoomId int
 AS
-INSERT INTO racks (name, room_id)
-VALUES (@Name, @Room_id)
+if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+BEGIN
+	INSERT INTO Racks (name, roomId)
+	VALUES (@Name, @RoomId)
+END;
 GO
-CREATE PROCEDURE DeleteRack @Id int
+CREATE PROCEDURE delRack @UserId int,@Id int
 AS
-UPDATE racks SET active ='n'
-WHERE id = @Id
+if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+BEGIN
+	UPDATE Racks SET isActive =0, dateUpdate = getdate()
+	WHERE id = @Id
+END;
+GO
+CREATE PROCEDURE updRack @UserId int, @Id int, @RoomId int --no pongo valor por defecto, como es el unico dato a cargar lo tiene que cargar
+AS
+if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+BEGIN
+	UPDATE Racks SET roomId = @RoomId, dateUpdate = GETDATE()
+	WHERE id = @Id
+END;
 GO
 
 --Shelves
-CREATE PROCEDURE AddShelf @Name varchar(30), @Rack_id int
+CREATE PROCEDURE insShelf @UserId int,@Name varchar(30), @RackId int
 AS
-INSERT INTO shelves (name, rack_id)
-VALUES (@Name, @Rack_id)
+if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin'))=1)
+BEGIN
+	INSERT INTO Shelves (name, rackId)
+	VALUES (@Name, @RackId)
+END;
 GO
-CREATE PROCEDURE DeleteShelf @Id int
+CREATE PROCEDURE delShelf @UserId int, @Id int
 AS
-UPDATE shelves SET active = 'n'
-WHERE id = @Id
+if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+BEGIN
+	UPDATE Shelves SET isActive = 0, dateUpdate = getdate()
+	WHERE id = @Id
+END;
+GO
+CREATE PROCEDURE updShelf @UserId int, @Id int, @RackId int --no pongo valor por defecto, como es el unico dato a cargar lo tiene que cargar
+AS
+if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+BEGIN
+	UPDATE Shelves SET rackId = @RackId, dateUpdate = GETDATE()
+	WHERE id = @Id
+END;
 GO
 
 --Sections
-CREATE PROCEDURE AddSection @Name varchar(30), @Shelf_id int
+CREATE PROCEDURE insSection @UserId int, @Name varchar(30), @ShelfId int
 AS
-INSERT INTO sections (name, shelf_id)
-VALUES (@Name, @Shelf_id)
+if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+BEGIN
+	INSERT INTO Sections (name, shelfId)
+	VALUES (@Name, @ShelfId)
+END;
 GO
-CREATE PROCEDURE DeleteSection @Id int
+CREATE PROCEDURE delSection @UserId int, @Id int
 AS
-UPDATE sections SET active ='n'
-WHERE id = @Id
+if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+BEGIN
+	UPDATE Sections SET isActive =0, dateUpdate = getdate()
+	WHERE id = @Id
+END;
+GO
+CREATE PROCEDURE updSection @UserId int, @Id int, @ShelfId int --no pongo valor por defecto, como es el unico dato a cargar lo tiene que cargar
+AS
+if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+BEGIN
+	UPDATE Sections SET shelfId = @ShelfId, dateUpdate = GETDATE()
+	WHERE id = @Id
+END;
 GO
 
 --Books
-CREATE PROCEDURE AddBook @Section_id int, @Title varchar(30), @Isbn varchar(13), @Synopsis text, @Rating int, @Status varchar(1)
+CREATE PROCEDURE insBook @UserId int, @SectionId int, @Title varchar(30), @Isbn varchar(13), @Synopsis text, @Rating decimal
 AS
-INSERT INTO books (section_id, title, isbn, synopsis, rating, status)
-VALUES (@Section_id, @Title, @Isbn, @Synopsis, @Rating, @Status)
+if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+BEGIN
+	INSERT INTO Books (sectionId, title, isbn, synopsis, rating)
+	VALUES (@SectionId, @Title, @Isbn, @Synopsis, @Rating)
+END;
 GO
-CREATE PROCEDURE DeleteBook @Id int
+CREATE PROCEDURE delBook @UserId int, @Id int
 AS
-UPDATE books SET active = 'n'
-WHERE id = @Id
+if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+BEGIN
+	UPDATE Books SET isActive = 0, dateUpdate = getdate()
+	WHERE id = @Id
+END;
 GO
-
+CREATE PROCEDURE updBook @UserId int, @Id int, 
+	@SectionId int = NULL,
+	@Title varchar(30) = NULL,
+	@Isbn varchar(13) = NULL,
+	@Synopsis text = NULL,
+	@Rating decimal = NULL
+AS
+if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+BEGIN
+	if (@SectionId is NULL) SET @SectionId = (SELECT sectionId from Books WHERE id = @Id);
+	if (@Title is NULL) SET @Title = (SELECT title from Books WHERE id = @Id);
+	if (@Isbn is NULL) SET @Isbn = (SELECT isbn from Books WHERE id = @Id);
+	if (@Synopsis is NULL) SET @Synopsis = (SELECT synopsis from Books WHERE id = @Id);
+	if (@Rating is NULL) SET @Rating = (SELECT rating from Books WHERE id = @Id);
+	UPDATE Books SET sectionId = @SectionId, title = @Title, isbn = @Isbn, synopsis = @Synopsis, rating = @Rating, dateUpdate = GETDATE()
+	WHERE id = @Id
+END;
+GO
 --Roles
 --No se como manejarlo todavia, no tiene sentido crear ni borrar Roles.Ya que son fijos
 --Users
-CREATE PROCEDURE AddUser @First_name varchar(20), @Last_name varchar(30), @Dni varchar(9), @Birth_date datetime, @Telepone varchar(11), @Email varchar(30), @Rol_id int
+CREATE PROCEDURE insUser @CreatorId int, @FirstName varchar(20), @LastName varchar(30), @Dni varchar(9), @BirthDate datetime, @Telephone varchar(11), @Email varchar(30), @RolId int
 AS
-INSERT INTO users (first_name, last_name,dni,birth_date, telephone, email, rol_id)
-VALUES (@First_name, @Last_name, @Dni, @Birth_date, @Telepone, @Email, @Rol_id)
+if (dbo.checkUserRole(@CreatorId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+BEGIN
+	INSERT INTO Users (firstName, lastName,dni,birthDate, telephone, email, rolId)
+	VALUES (@FirstName, @LastName, @Dni, @BirthDate, @Telephone, @Email, @RolId)
+END;
 GO
-CREATE PROCEDURE DeleteUser @Id int
+CREATE PROCEDURE delUser @UserId int, @Id int
 AS
-UPDATE users SET active = 'n'
-WHERE id = @Id
+if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+BEGIN
+	UPDATE Users SET isActive = 0, dateUpdate = getdate()
+	WHERE id = @Id
+END;
 GO
 --Loans
-CREATE PROCEDURE AddLoan @Book_id int, @User_id int, @Branch_id int, @Date_of_issue datetime, @Date_of_Completion datetime, @Status varchar(10)
+CREATE PROCEDURE insLoan @UserId1 int, @BookId int, @UserId2 int, @DateIssue datetime, @DateCompletion datetime, @StatusId int
 AS
-INSERT INTO loans (book_id, user_id, branch_id, date_of_issue, date_of_completion, status)
-VALUES (@Book_id, @User_id, @Branch_id, @Date_of_issue, @Date_of_Completion, @Status)
+if (dbo.checkUserRole(@UserId1,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+BEGIN
+	INSERT INTO Loans (bookId, userId, dateIssue, dateCompletion, statusId)
+	VALUES (@BookId, @UserId2, @DateIssue, @DateCompletion, @StatusId)
+END;
 GO
-CREATE PROCEDURE DeleteLoan @Id int
+CREATE PROCEDURE delLoan @UserId int, @Id int
 AS
-UPDATE loans SET active='n'
-WHERE id = @Id
+if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+BEGIN
+	UPDATE Loans SET isActive=0, dateUpdate = getdate()
+	WHERE id = @Id
+END;
+GO
+CREATE PROCEDURE updLoan @UserId1 int, @Id int, 
+@UserId2 int = NULL, 
+@DateIssue datetime = NULL, 
+@DateCompletion datetime = NULL
+AS
+if (dbo.checkUserRole(@UserId1,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+BEGIN
+	if (@UserId2 is NULL) SET @UserId2 = (SELECT userId FROM Loans WHERE id = @Id);
+	if (@DateIssue is NULL) SET @DateIssue = (SELECT dateIssue FROM Loans WHERE id = @Id);
+	if (@DateCompletion is NULL) SET @DateCompletion = (SELECT @DateCompletion FROM Loans WHERE id = @Id);
+	UPDATE Loans SET userId = @UserId2, dateIssue = @DateIssue, dateCompletion = @DateCompletion, dateUpdate = GETDATE()
+	WHERE id = @Id
+END;
 GO
 
 --VISTAS
 
 
 --Crear Registros
-insert into roles (name, description)
+insert into Roles (name, description)
 	values ('User', 'Usuario');
-insert into roles (name, description)
+insert into Roles (name, description)
 	values ('No User', 'No Usuario');
-insert into roles (name, description)
+insert into Roles (name, description)
 	values ('Admin', 'Administrador');
+insert into States (name, description)
+	values ('Active','Activo');
+insert into States (name, description)
+	values ('Finished','Terminado');
+insert into Users (firstName, lastName,dni, birthDate, telephone, email, rolId)
+VALUES ('Pedro','Admin','12345678','01-01-1991','1234567890','pedro@admin.com',3);
 
-exec AddBranch 'La de Pilar', 'Pilar', 42;
-exec AddBranch 'La de Campana', 'Campana', 55;
-exec DeleteBranch 2;
+exec insBranch 1,'La de Pilar', 'Pilar', 42;
+exec insBranch 1,'La de Campana', 'Campana', 55;
+exec delBranch 1,2;
 SELECT * FROM branches;
-exec AddRoom 'Room 1', 1;
-exec AddRack 'Rack 1', 1;
-exec AddShelf 'Shelf 1',1;
-exec AddSection 'Section 1', 1;
-exec AddBook 1, 'El hombre que calculaba', '33343434', 'Buen Libro?', 8, 'D';
+exec insRoom 1,'Room 1', 1;
+exec insRack 1,'Rack 1', 1;
+exec insShelf 1,'Shelf 1',1;
+exec insSection 1,'Section 1', 1;
+exec insBook 1,1, 'El hombre que calculaba', '33343434', 'Buen Libro?', 8;
 set dateformat dmy;
-exec AddUser 'Gonzalo', 'Lattanzio','43598878','27-09-2001','1167918562','gonzalattanzio@gmail.com',1;
-exec AddLoan 1, 1, 1, '21-09-2023','23-10-2023', 'Activo';
+exec insUser 1,'Gonzalo', 'Lattanzio','43598878','27-09-2001','1167918562','gonzalattanzio@gmail.com',1;
+exec insLoan 1, 1, 2, '21-09-2023','23-10-2023',1;
 SELECT * FROM loans;
 
