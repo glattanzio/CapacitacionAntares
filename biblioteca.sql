@@ -39,7 +39,6 @@ create table Racks(
 	primary key (id), 
 	constraint FK_Racks_Rooms foreign key (roomId) references Rooms(id)
 );
-
 create table Shelves(
 	id int identity,
 	name varchar(30) unique,
@@ -50,7 +49,6 @@ create table Shelves(
 	primary key (id),
 	constraint FK_Shelves_Racks foreign key(rackId) references Racks(id)
 );
-
 create table Sections(
 	id int identity,
 	name varchar(30) unique,
@@ -61,7 +59,6 @@ create table Sections(
 	primary key (id),
 	constraint FK_Sections_Shelves foreign key(shelfId) references Shelves(id)
 );
-
 create table Books(
 	id int identity,
 	sectionId int,
@@ -75,7 +72,6 @@ create table Books(
 	primary key (id),
 	constraint FK_Books_Sections foreign key (sectionId) references Sections(id)
 );
-
 create table Roles(
 	id int identity,
 	name varchar(15) unique,
@@ -143,28 +139,28 @@ END;
 GO
 --PROCEDURES
 --Branches
-CREATE PROCEDURE insBranch @UserId int, @Name varchar(30), @City varchar(30), @Employees int
+CREATE PROCEDURE insBranch @CreatorId int, @Name varchar(30), @City varchar(30), @Employees int
 AS
-if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+if (dbo.checkUserRole(@CreatorId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
 	INSERT INTO Branches (name, city, employees)
 	VALUES (@Name, @City, @Employees)
 END;
 GO
-CREATE PROCEDURE delBranch @UserId int, @Id int
+CREATE PROCEDURE delBranch @DeleterId int, @Id int
 AS
-if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+if (dbo.checkUserRole(@DeleterId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
 	UPDATE Branches set isActive = 0, dateUpdate = GETDATE()
 	WHERE id=@Id
 END;
 GO
-CREATE PROCEDURE updBranch @UserId int, @Id int,
+CREATE PROCEDURE updBranch @ModifierId int, @Id int,
 	@Name varchar(30) = NULL,
 	@City varchar(30) = NULL, 
 	@Employees int = NULL
 AS
-if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+if (dbo.checkUserRole(@ModifierId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
 	if (@Name is  NULL) SET @Name = (SELECT name FROM Branches WHERE id = @Id);
 	if (@City is NULL) SET @City = (SELECT city FROM Branches WHERE id = @Id);
@@ -174,133 +170,130 @@ BEGIN
 END;
 GO
 --Rooms
-CREATE PROCEDURE insRoom @UserId int, @Name varchar(30), @BranchId int
+CREATE PROCEDURE insRoom @CreatorId int, @Name varchar(30), @BranchId int
 AS
-if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+if (dbo.checkUserRole(@CreatorId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
 	INSERT INTO Rooms (name, branchId)
 	VALUES (@Name, @BranchId)
 END;
 GO
-CREATE PROCEDURE delRoom @UserId int, @Id int
+CREATE PROCEDURE delRoom @DeleterId int, @Id int
 AS
-if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+if (dbo.checkUserRole(@DeleterId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
 	UPDATE Sections SET isActive =0, dateUpdate = getdate()
 	WHERE id = @Id
 END;
 GO
-CREATE PROCEDURE updRoom @UserId int, @Id int, @BranchId int --no pongo valor por defecto, como es el unico dato a cargar lo tiene que cargar
+CREATE PROCEDURE updRoom @ModifierId int, @Id int, @BranchId int --no pongo valor por defecto, como es el unico dato a cargar lo tiene que cargar
 AS
-if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+if (dbo.checkUserRole(@ModifierId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
 	UPDATE Rooms SET branchId = @BranchId, dateUpdate = GETDATE()
 	WHERE id = @Id
 END;
 GO
 --Racks
-CREATE PROCEDURE insRack @UserId int, @Name varchar(30), @RoomId int
+CREATE PROCEDURE insRack @CreatorId int, @Name varchar(30), @RoomId int
 AS
-if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+if (dbo.checkUserRole(@CreatorId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
 	INSERT INTO Racks (name, roomId)
 	VALUES (@Name, @RoomId)
 END;
 GO
-CREATE PROCEDURE delRack @UserId int,@Id int
+CREATE PROCEDURE delRack @DeleterId int,@Id int
 AS
-if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+if (dbo.checkUserRole(@DeleterId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
 	UPDATE Racks SET isActive =0, dateUpdate = getdate()
 	WHERE id = @Id
 END;
 GO
-CREATE PROCEDURE updRack @UserId int, @Id int, @RoomId int --no pongo valor por defecto, como es el unico dato a cargar lo tiene que cargar
+CREATE PROCEDURE updRack @ModifierId int, @Id int, @RoomId int --no pongo valor por defecto, como es el unico dato a cargar lo tiene que cargar
 AS
-if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+if (dbo.checkUserRole(@ModifierId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
 	UPDATE Racks SET roomId = @RoomId, dateUpdate = GETDATE()
 	WHERE id = @Id
 END;
 GO
-
 --Shelves
-CREATE PROCEDURE insShelf @UserId int,@Name varchar(30), @RackId int
+CREATE PROCEDURE insShelf @CreatorId int,@Name varchar(30), @RackId int
 AS
-if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin'))=1)
+if (dbo.checkUserRole(@CreatorId,(SELECT id FROM Roles WHERE name = 'Admin'))=1)
 BEGIN
 	INSERT INTO Shelves (name, rackId)
 	VALUES (@Name, @RackId)
 END;
 GO
-CREATE PROCEDURE delShelf @UserId int, @Id int
+CREATE PROCEDURE delShelf @DeleterId int, @Id int
 AS
-if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+if (dbo.checkUserRole(@DeleterId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
 	UPDATE Shelves SET isActive = 0, dateUpdate = getdate()
 	WHERE id = @Id
 END;
 GO
-CREATE PROCEDURE updShelf @UserId int, @Id int, @RackId int --no pongo valor por defecto, como es el unico dato a cargar lo tiene que cargar
+CREATE PROCEDURE updShelf @ModifierId int, @Id int, @RackId int --no pongo valor por defecto, como es el unico dato a cargar lo tiene que cargar
 AS
-if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+if (dbo.checkUserRole(@ModifierId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
 	UPDATE Shelves SET rackId = @RackId, dateUpdate = GETDATE()
 	WHERE id = @Id
 END;
 GO
-
 --Sections
-CREATE PROCEDURE insSection @UserId int, @Name varchar(30), @ShelfId int
+CREATE PROCEDURE insSection @CreatorId int, @Name varchar(30), @ShelfId int
 AS
-if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+if (dbo.checkUserRole(@CreatorId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
 	INSERT INTO Sections (name, shelfId)
 	VALUES (@Name, @ShelfId)
 END;
 GO
-CREATE PROCEDURE delSection @UserId int, @Id int
+CREATE PROCEDURE delSection @DeleterId int, @Id int
 AS
-if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+if (dbo.checkUserRole(@DeleterId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
 	UPDATE Sections SET isActive =0, dateUpdate = getdate()
 	WHERE id = @Id
 END;
 GO
-CREATE PROCEDURE updSection @UserId int, @Id int, @ShelfId int --no pongo valor por defecto, como es el unico dato a cargar lo tiene que cargar
+CREATE PROCEDURE updSection @ModifierId int, @Id int, @ShelfId int --no pongo valor por defecto, como es el unico dato a cargar lo tiene que cargar
 AS
-if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+if (dbo.checkUserRole(@ModifierId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
 	UPDATE Sections SET shelfId = @ShelfId, dateUpdate = GETDATE()
 	WHERE id = @Id
 END;
 GO
-
 --Books
-CREATE PROCEDURE insBook @UserId int, @SectionId int, @Title varchar(30), @Isbn varchar(13), @Synopsis text, @Rating decimal
+CREATE PROCEDURE insBook @CreatorId int, @SectionId int, @Title varchar(30), @Isbn varchar(13), @Synopsis text, @Rating decimal
 AS
-if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+if (dbo.checkUserRole(@CreatorId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
 	INSERT INTO Books (sectionId, title, isbn, synopsis, rating)
 	VALUES (@SectionId, @Title, @Isbn, @Synopsis, @Rating)
 END;
 GO
-CREATE PROCEDURE delBook @UserId int, @Id int
+CREATE PROCEDURE delBook @DeleterId int, @Id int
 AS
-if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+if (dbo.checkUserRole(@DeleterId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
 	UPDATE Books SET isActive = 0, dateUpdate = getdate()
 	WHERE id = @Id
 END;
 GO
-CREATE PROCEDURE updBook @UserId int, @Id int, 
+CREATE PROCEDURE updBook @ModifierId int, @Id int, 
 	@SectionId int = NULL,
 	@Title varchar(30) = NULL,
 	@Isbn varchar(13) = NULL,
 	@Synopsis text = NULL,
 	@Rating decimal = NULL
 AS
-if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+if (dbo.checkUserRole(@ModifierId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
 	if (@SectionId is NULL) SET @SectionId = (SELECT sectionId from Books WHERE id = @Id);
 	if (@Title is NULL) SET @Title = (SELECT title from Books WHERE id = @Id);
@@ -322,42 +315,65 @@ BEGIN
 	VALUES (@FirstName, @LastName, @Dni, @BirthDate, @Telephone, @Email, @RolId)
 END;
 GO
-CREATE PROCEDURE delUser @UserId int, @Id int
+CREATE PROCEDURE delUser @DeleterId int, @Id int
 AS
-if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+if (dbo.checkUserRole(@DeleterId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
 	UPDATE Users SET isActive = 0, dateUpdate = getdate()
 	WHERE id = @Id
 END;
 GO
---Loans
-CREATE PROCEDURE insLoan @UserId1 int, @BookId int, @UserId2 int, @DateIssue datetime, @DateCompletion datetime, @StatusId int
+CREATE PROCEDURE updUser @ModifierId int, @Id int,
+	@FirstName varchar(30) = NULL,
+	@LastName varchar(30) =  NULL,
+	@Dni varchar(9) = NULL,
+	@BirthDate datetime = NULL,
+	@Telephone varchar(11) = NULL,
+	@Email varchar(30) = NULL,
+	@RolId int = NULL --VERIFICAR QUE UN USUARIO NO SE CAMBIE DE ROL A SI MISMO
 AS
-if (dbo.checkUserRole(@UserId1,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+IF (dbo.checkUserRole(@ModifierId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
-	INSERT INTO Loans (bookId, userId, dateIssue, dateCompletion, statusId)
-	VALUES (@BookId, @UserId2, @DateIssue, @DateCompletion, @StatusId)
+	UPDATE Users SET firstName = @FirstName, lastName = @LastName, dni = @Dni,birthDate = @BirthDate,telephone= @Telephone, email = @Email, rolId=@RolId ,dateUpdate=getdate()
+	WHERE id = @Id
+END;
+ELSE
+BEGIN
+	IF (dbo.checkUserRole(@ModifierId,(SELECT id FROM Roles WHERE name = 'uSER')) = 1) AND (@ModifierId = @Id)
+	BEGIN
+		UPDATE Users SET firstName = @FirstName, lastName = @LastName, dni = @Dni,birthDate = @BirthDate,telephone= @Telephone, email = @Email ,dateUpdate=getdate()
+		WHERE id = @Id
+	END;
 END;
 GO
-CREATE PROCEDURE delLoan @UserId int, @Id int
+--Loans
+CREATE PROCEDURE insLoan @CreatorId int, @BookId int, @UserId int, @DateIssue datetime, @DateCompletion datetime, @StatusId int
 AS
-if (dbo.checkUserRole(@UserId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+if (dbo.checkUserRole(@CreatorId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+BEGIN
+	INSERT INTO Loans (bookId, userId, dateIssue, dateCompletion, statusId)
+	VALUES (@BookId, @UserId, @DateIssue, @DateCompletion, @StatusId)
+END;
+GO
+CREATE PROCEDURE delLoan @DeleterId int, @Id int
+AS
+if (dbo.checkUserRole(@DeleterId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
 	UPDATE Loans SET isActive=0, dateUpdate = getdate()
 	WHERE id = @Id
 END;
 GO
-CREATE PROCEDURE updLoan @UserId1 int, @Id int, 
-@UserId2 int = NULL, 
+CREATE PROCEDURE updLoan @ModifierId int, @Id int, 
+@UserId int = NULL, 
 @DateIssue datetime = NULL, 
 @DateCompletion datetime = NULL
 AS
-if (dbo.checkUserRole(@UserId1,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+if (dbo.checkUserRole(@ModifierId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
-	if (@UserId2 is NULL) SET @UserId2 = (SELECT userId FROM Loans WHERE id = @Id);
+	if (@UserId is NULL) SET @UserId = (SELECT userId FROM Loans WHERE id = @Id);
 	if (@DateIssue is NULL) SET @DateIssue = (SELECT dateIssue FROM Loans WHERE id = @Id);
 	if (@DateCompletion is NULL) SET @DateCompletion = (SELECT @DateCompletion FROM Loans WHERE id = @Id);
-	UPDATE Loans SET userId = @UserId2, dateIssue = @DateIssue, dateCompletion = @DateCompletion, dateUpdate = GETDATE()
+	UPDATE Loans SET userId = @UserId, dateIssue = @DateIssue, dateCompletion = @DateCompletion, dateUpdate = GETDATE()
 	WHERE id = @Id
 END;
 GO
