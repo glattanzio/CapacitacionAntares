@@ -121,8 +121,44 @@ create table Loans(
 	constraint FK_Loans_States foreign key (statusId) references States(id)
 );
 GO
-/* Procedures- Agregar libro, borrar libro, mover libro, agregar usuario, modificar rol, borrar usuario, crear prestamo, concluir prestamo, devolver libro
-	Vistas - Todos los salones, estanterias, estantes, secciones y libros de una sucursal
+--VISTAS
+CREATE VIEW LoanedBooks AS 
+	SELECT * FROM Books 
+	WHERE id IN(SELECT bookId FROM Loans WHERE statusId = 1);
+GO
+CREATE VIEW AvailableBooks AS 
+	SELECT * FROM Books 
+	WHERE id NOT IN (SELECT bookId FROM Loans WHERE statusId = 1);
+GO
+CREATE VIEW UsersWithLoans AS 
+	SELECT * FROM Users 
+	WHERE id IN(SELECT userId FROM Loans WHERE statusId = 1);
+GO
+CREATE VIEW UsersWithoutLoans AS
+	SELECT * FROM Users 
+	WHERE id NOT IN(SELECT userId FROM Loans WHERE statusId = 1);
+GO
+CREATE VIEW LoansUsersBooks  AS 
+	SELECT Loans.id,u.id as 'User Id', u.firstName, u.lastName,b.id as 'Book Id', b.title, dateIssue, dateCompletion FROM  Loans
+	JOIN Users AS u ON userId = u.id
+	JOIN Books AS b on bookId = b.id;
+GO
+CREATE VIEW BooksLocations AS
+	SELECT  bo.id AS BookId , bo.title AS BookName,
+		se.id AS SectionId, se.name AS SectionName, 
+		sh.id AS ShelfId, sh.name as ShelfName, 
+		ra.id AS RackId, ra.name AS RackName,
+		ro.id AS RoomId, ro.name AS RoomName,
+		br.id AS BranchId, br.name AS BranchName
+		FROM Books as bo
+	JOIN Sections AS se ON bo.sectionId = se.id
+	JOIN Shelves AS sh ON se.ShelfId = sh.id
+	JOIN Racks AS ra ON sh.rackId = ra.id
+	JOIN Rooms AS ro ON ra.roomId = ro.id
+	JOIN Branches AS br ON ro.branchId = br.id;
+GO --hice esta vista porque es la mas amplia, con algunos WHERE podes ver todos los libros de una sucursal, o seccion, etc. Ademas, tambien podes limitar los campos
+
+/*	Vistas - Todos los salones, estanterias, estantes, secciones y libros de una sucursal
 	Funciones- Buscar libros por sucursal, libros por salon, seccion, estante, buscar ubicacion de un libro, dado un usuario buscar el rol, dado un rol devolver todos los usuarios que lo usan
 	Triggers: Modificar fechas de update, modificar estado de libros 
 */
@@ -134,6 +170,89 @@ BEGIN
 	BEGIN
 		RETURN 1;
 	END;
+	RETURN 0;
+END;
+GO
+CREATE FUNCTION allBooksInBranch (@BranchId int) 
+RETURNS @BooksInBranch table (bookId int, bookName varchar(30))
+AS
+BEGIN
+	INSERT @BooksInBranch
+		SELECT BookId, BookName FROM BooksLocations
+		WHERE BranchId = @branchId
+	RETURN
+END;
+GO
+CREATE FUNCTION allBooksInRoom (@RoomId int) 
+RETURNS @BooksInRoom table (bookId int, bookName varchar(30))
+AS
+BEGIN
+	INSERT @BooksInRoom
+		SELECT BookId, BookName FROM BooksLocations
+		WHERE RoomId = @roomId
+	RETURN
+END;
+GO
+CREATE FUNCTION allBooksInRack (@RackId int) 
+RETURNS @BooksInRack table (bookId int, bookName varchar(30))
+AS
+BEGIN
+	INSERT @BooksInRack
+		SELECT BookId, BookName FROM BooksLocations
+		WHERE RackId = @RackId
+	RETURN
+END;
+GO
+CREATE FUNCTION allBooksInShelf (@ShelfId int) 
+RETURNS @BooksInShelf table (bookId int, bookName varchar(30))
+AS
+BEGIN
+	INSERT @BooksInShelf
+		SELECT BookId, BookName FROM BooksLocations
+		WHERE shelfId = @ShelfId
+	RETURN
+END;
+GO
+CREATE FUNCTION allBooksInSection (@SectionId int) 
+RETURNS @BooksInSection table (bookId int, bookName varchar(30))
+AS
+BEGIN
+	INSERT @BooksInSection
+		SELECT BookId, BookName FROM BooksLocations
+		WHERE SectionId = @sectionId
+	RETURN
+END;
+GO
+CREATE FUNCTION searchBooksByName (@Title varchar(30))
+RETURNS @BooksWithName table (bookId int, bookName varchar(30), sectionId int)
+AS
+BEGIN
+	INSERT @BooksWithName
+		SELECT id, title, sectionId FROM Books
+		WHERE title = @Title
+	RETURN
+END;
+GO
+CREATE FUNCTION searchBook (@Id int)
+RETURNS @Ubication table 
+(bookId int, bookName varchar(30), 
+sectionId int, sectionName varchar(30),
+shelfId int, shelfName varchar(30),
+rackId int, rackName varchar(30),
+roomId int, roomName varchar(30),
+branchId int, branchName varchar(30))
+BEGIN
+	INSERT @Ubication 
+		SELECT * FROM BooksLocations
+		WHERE BookId = @Id;
+	RETURN
+END;
+GO
+CREATE FUNCTION userHasALoan(@Id int) RETURNS bit
+BEGIN
+	if exists(SELECT * FROM Loans 
+				WHERE userId = @Id AND statusId = 1)
+		RETURN 1;
 	RETURN 0;
 END;
 GO
@@ -380,42 +499,6 @@ BEGIN
 END;
 GO
 
---VISTAS
-CREATE VIEW LoanedBooks AS 
-	SELECT * FROM Books 
-	WHERE id IN(SELECT bookId FROM Loans WHERE statusId = 1);
-GO
-CREATE VIEW AvailableBooks AS 
-	SELECT * FROM Books 
-	WHERE id NOT IN (SELECT bookId FROM Loans WHERE statusId = 1);
-GO
-CREATE VIEW UsersWithLoans AS 
-	SELECT * FROM Users 
-	WHERE id IN(SELECT userId FROM Loans WHERE statusId = 1);
-GO
-CREATE VIEW UsersWithoutLoans AS
-	SELECT * FROM Users 
-	WHERE id NOT IN(SELECT userId FROM Loans WHERE statusId = 1);
-GO
-CREATE VIEW LoansUsersBooks  AS 
-	SELECT Loans.id,u.id as 'User Id', u.firstName, u.lastName,b.id as 'Book Id', b.title, dateIssue, dateCompletion FROM  Loans
-	JOIN Users AS u ON userId = u.id
-	JOIN Books AS b on bookId = b.id;
-GO
-CREATE VIEW BooksLocations AS
-	SELECT  bo.id AS 'Book Id', bo.title AS 'Book Name',
-		se.id AS 'Section Id', se.name AS 'Section Name', 
-		sh.id AS 'Shelf Id', sh.name as 'Shelf Name', 
-		ra.id AS 'Rack Id', ra.name AS 'Rack Name',
-		ro.id AS 'Room Id', ro.name AS 'Room Name',
-		br.id AS 'Branch Id', br.name AS 'Branch Name'
-		FROM Books as bo
-	JOIN Sections AS se ON bo.sectionId = se.id
-	JOIN Shelves AS sh ON se.ShelfId = sh.id
-	JOIN Racks AS ra ON sh.rackId = ra.id
-	JOIN Rooms AS ro ON ra.roomId = ro.id
-	JOIN Branches AS br ON ro.branchId = br.id;
-GO --hice esta vista porque es la mas amplia, con algunos WHERE podes ver todos los libros de una sucursal, o seccion, etc. Ademas, tambien podes limitar los campos
 --Crear Registros
 insert into Roles (name, description)
 	values ('User', 'Usuario');
@@ -442,3 +525,5 @@ set dateformat dmy;
 exec insUser 1,'Gonzalo', 'Lattanzio','43598878','27-09-2001','1167918562','gonzalattanzio@gmail.com',1;
 exec insLoan 1, 1, 2, '21-09-2023','23-10-2023',1;
 --exec updLoan 1, 1, @StatusId = 2;
+SELECT * FROM dbo.searchBooksByName('El hombre que calculaba');
+SELECT * FROM dbo.searchBook(1);
