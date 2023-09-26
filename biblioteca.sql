@@ -7,141 +7,146 @@ if exists(select * from dbo.sysdatabases where name='AtlasBook')
 create database AtlasBook;
 use AtlasBook
 
-create table branches(
+create table Branches(
 	id int identity,
-	name varchar(30),
-	city varchar(20),
+	name varchar(30) unique,
+	city varchar(30),
 	employees int,
-	register_creation datetime default getdate() not null,
-	register_update datetime default getdate() not null,
-	active varchar(1) default 'y' not null,
+	dateCreation datetime default getdate() not null,
+	dateUpdate datetime default getdate() not null,
+	isActive bit default 1 not null,
 	primary key (id)
 );
 
-create table rooms(
+create table Rooms(
 	id int identity,
-	name varchar(30),
-	branch_id int,
-	register_creation datetime default getdate() not null,
-	register_update datetime default getdate() not null,
-	active varchar(1) default 'y' not null,
+	name varchar(30) unique,
+	branchId int,
+	dateCreation datetime default getdate() not null,
+	dateUpdate datetime default getdate() not null,
+	isActive bit default 1 not null,
 	primary key (id),
-	constraint FK_rooms_branches
-	foreign key (branch_id)
-	references branches(id)
+	constraint FK_Rooms_Branches foreign key (branchId) references Branches(id)
 );
 
-create table racks(
+create table Racks(
 	id int identity,
-	name varchar(30),
-	room_id int,
-	register_creation datetime default getdate() not null,
-	register_update datetime default getdate() not null,
-	active varchar(1) default 'y' not null,
+	name varchar(30) unique,
+	roomId int,
+	dateCreation datetime default getdate() not null,
+	dateUpdate datetime default getdate() not null,
+	isActive bit default 1 not null,
 	primary key (id), 
-	constraint FK_racks_rooms foreign key (room_id) references rooms(id)
+	constraint FK_Racks_Rooms foreign key (roomId) references Rooms(id)
 );
 
-create table shelves(
+create table Shelves(
 	id int identity,
-	name varchar(30),
-	rack_id int,
-	register_creation datetime default getdate() not null,
-	register_update datetime default getdate() not null,
-	active varchar(1) default 'y' not null,
+	name varchar(30) unique,
+	rackId int,
+	dateCreation datetime default getdate() not null,
+	dateUpdate datetime default getdate() not null,
+	isActive bit default 1 not null,
 	primary key (id),
-	constraint FK_shelves_racks foreign key(rack_id) references racks(id)
+	constraint FK_Shelves_Racks foreign key(rackId) references Racks(id)
 );
 
-create table sections(
+create table Sections(
 	id int identity,
-	name varchar(30),
-	shelf_id int,
-	register_creation datetime default getdate() not null,
-	register_update datetime default getdate() not null,
-	active varchar(1) default 'y' not null,
+	name varchar(30) unique,
+	shelfId int,
+	dateCreation datetime default getdate() not null,
+	dateUpdate datetime default getdate() not null,
+	isActive bit default 1 not null,
 	primary key (id),
-	constraint FK_sections_shelves foreign key(shelf_id) references shelves(id)
+	constraint FK_Sections_Shelves foreign key(shelfId) references Shelves(id)
 );
 
-create table books(
+create table Books(
 	id int identity,
-	section_id int,
+	sectionId int,
 	title varchar(30),
 	isbn varchar(13), --codigo alfanumerico International Standard Book Number, puede ser util para buscar un libro.
 	synopsis text,
 	rating int,
-	status varchar(1),
-	register_creation datetime default getdate() not null,
-	register_update datetime default getdate() not null,
-	active varchar(1) default 'y' not null,
+	isAvailable bit default 1,
+	dateCreation datetime default getdate() not null,
+	dateUpdate datetime default getdate() not null,
+	isActive bit default 1 not null,
 	primary key (id),
-	constraint FK_books_sections foreign key (section_id) references sections(id)
+	constraint FK_Books_Sections foreign key (sectionId) references Sections(id)
 );
 
-create table roles(
+create table Roles(
 	id int identity,
-	name varchar(15),
+	name varchar(15) unique,
 	description text,
-	register_creation datetime default getdate() not null,
-	register_update datetime default getdate() not null,
-	active varchar(1) default 'y' not null,
+	dateCreation datetime default getdate() not null,
+	dateUpdate datetime default getdate() not null,
+	isActive bit default 1 not null,
 	primary key(id)
 );
-create table users(
+create table Users(
 	id int identity,
-	first_name varchar(20),
-	last_name varchar(30),
-	dni varchar(9),
-	birth_date datetime,
-	telephone varchar(11),
-	email varchar(30),
-	rol_id int,
-	register_creation datetime default getdate() not null,
-	register_update datetime default getdate() not null,
-	active varchar(1) default 'y' not null,
+	firstName varchar(20),
+	lastName varchar(30),
+	dni varchar(9) unique,
+	birthDate datetime,
+	telephone varchar(11) unique,
+	email varchar(30) unique,
+	rolId int,
+	dateCreation datetime default getdate() not null,
+	dateUpdate datetime default getdate() not null,
+	isActive bit default 1 not null,
 	primary key (id),
-	constraint FK_users_roles foreign key (rol_id) references roles(id)
+	constraint FK_Users_Roles foreign key (rolId) references Roles(id)
 );
 
-create table loans(
+create table Loans(
 	id int identity,
-	book_id int not null,
-	user_id int not null,
-	branch_id int not null,
-	date_of_issue datetime,
-	date_of_completion datetime,
-	status varchar(10),
-	register_creation datetime default getdate() not null,
-	register_update datetime default getdate() not null,
-	active varchar(1) default 'y' not null,
+	bookId int not null,
+	userId int not null,
+	dateIssue datetime,
+	dateCompletion datetime,
+	statusId int not null,
+	dateCreation datetime default getdate() not null,
+	dateUpdate datetime default getdate() not null,
+	isActive bit default 1 not null,
 	primary key (id),
-	constraint FK_loans_users foreign key (user_id) references users(id),
-	constraint FK_loans_books foreign key (book_id) references books(id),
-	constraint FK_loans_branches foreign key (branch_id) references branches(id)
+	constraint FK_Loans_Users foreign key (userId) references Users(id),
+	constraint FK_loans_books foreign key (bookId) references Books(id),
 );
-
-
 GO
 /* Procedures- Agregar libro, borrar libro, mover libro, agregar usuario, modificar rol, borrar usuario, crear prestamo, concluir prestamo, devolver libro
 	Vistas - Todos los salones, estanterias, estantes, secciones y libros de una sucursal
 	Funciones- Buscar libros por sucursal, libros por salon, seccion, estante, buscar ubicacion de un libro, dado un usuario buscar el rol, dado un rol devolver todos los usuarios que lo usan
 	Triggers: Modificar fechas de update, modificar estado de libros 
 */
-
+CREATE FUNCTION checkUserRole(@UserId int, @RolId int) RETURNS bit
+BEGIN
+	if exists(SELECT * FROM Users as u 
+		INNER JOIN Roles as r ON u.rolId = r.id
+		WHERE u.id =@UserId AND r.id = @RolId)
+	BEGIN
+		RETURN 1;
+	END;
+	RETURN 0;
+END;
+GO
 --PROCEDURES
 --Branches
-CREATE PROCEDURE AddBranch @Name varchar(30), @City varchar(20), @Employees int
+CREATE PROCEDURE insBranch @UserId, @Name varchar(30), @City varchar(20), @Employees int
 AS
+if 
 INSERT INTO branches (name, city, employees)
 VALUES (@Name, @City, @Employees)
 GO
-CREATE PROCEDURE DeleteBranch @Id int
+CREATE PROCEDURE delBranch @Id int
 AS
 UPDATE branches set active = 'n' 
 WHERE id=@Id
 GO
-CREATE PROCEDURE ModifyBranch @Id int,
+CREATE PROCEDURE updBranch @Id int,
 	@Name varchar(30) = NULL,
 	@City varchar(20) = NULL, 
 	@Employees int = NULL
@@ -153,12 +158,12 @@ AS
 	WHERE id = @Id
 GO
 --Rooms
-CREATE PROCEDURE AddRoom @Name varchar(30), @Branch_id int
+CREATE PROCEDURE insRoom @Name varchar(30), @Branch_id int
 AS
 INSERT INTO rooms (name, branch_id)
 VALUES (@Name, @Branch_id)
 GO
-CREATE PROCEDURE DeleteRoom @Id int
+CREATE PROCEDURE delRoom @Id int
 AS
 UPDATE rooms SET active = 'n'
 WHERE id = @Id
