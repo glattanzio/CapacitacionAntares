@@ -83,12 +83,12 @@ create table Roles(
 );
 create table Users(
 	id int identity,
-	firstName varchar(20),
+	firstName varchar(30),
 	lastName varchar(30),
 	dni varchar(9) unique,
 	birthDate datetime,
 	telephone varchar(11) unique,
-	email varchar(30) unique,
+	email varchar(50) unique,
 	rolId int,
 	dateCreation datetime default getdate() not null,
 	dateUpdate datetime default getdate() not null,
@@ -121,27 +121,200 @@ create table Loans(
 	constraint FK_Loans_States foreign key (statusId) references States(id)
 );
 GO
+--SPs para filtrar por activos
+CREATE FUNCTION ActiveBranches(@Active bit)
+RETURNS @ActiveBranches table(
+	id int,
+	name varchar(30),
+	city varchar(30),
+	employees int,
+	dateCreation datetime,
+	DateUpdate datetime,
+	isActive bit 
+	) 
+BEGIN
+	INSERT @ActiveBranches 
+		SELECT * FROM Branches
+		WHERE isActive = @Active
+	RETURN
+END;
+GO
+CREATE FUNCTION ActiveRooms (@Active bit)
+RETURNS @ActiveRooms table(
+	id int,
+	name varchar(30),
+	branchId int,
+	dateCreation datetime,
+	DateUpdate datetime,
+	isActive bit 
+	) 
+BEGIN
+	INSERT @ActiveRooms 
+		SELECT * FROM Rooms
+		WHERE isActive = @Active
+	RETURN
+END;
+GO
+CREATE FUNCTION ActiveRacks (@Active bit)
+RETURNS @ActiveRacks table(
+	id int,
+	name varchar(30),
+	roomId int,
+	dateCreation datetime,
+	DateUpdate datetime,
+	isActive bit 
+	) 
+BEGIN
+	INSERT @ActiveRacks 
+		SELECT * FROM Racks
+		WHERE isActive = @Active
+	RETURN
+END;
+GO
+CREATE FUNCTION ActiveShelves (@Active bit)
+RETURNS @ActiveShelves table(
+	id int,
+	name varchar(30),
+	rackId int,
+	dateCreation datetime,
+	DateUpdate datetime,
+	isActive bit 
+	) 
+BEGIN
+	INSERT @ActiveShelves 
+		SELECT * FROM Shelves
+		WHERE isActive = @Active
+	RETURN
+END;
+GO
+CREATE FUNCTION ActiveSections (@Active bit)
+RETURNS @ActiveSections table(
+	id int,
+	name varchar(30),
+	shelfId int,
+	dateCreation datetime,
+	DateUpdate datetime,
+	isActive bit 
+	) 
+BEGIN
+	INSERT @ActiveSections 
+		SELECT * FROM Sections
+		WHERE isActive = @Active
+	RETURN
+END;
+GO
+CREATE FUNCTION ActiveBooks (@Active bit)
+RETURNS @ActiveBooks table(
+	id int,
+	sectionId int,
+	title varchar(30),
+	isbn varchar(13),
+	synopsis text,
+	rating int,
+	dateCreation datetime,
+	DateUpdate datetime,
+	isActive bit 
+	) 
+BEGIN
+	INSERT @ActiveBooks 
+		SELECT * FROM Books
+		WHERE isActive = @Active
+	RETURN
+END;
+GO
+CREATE FUNCTION ActiveRoles (@Active bit)
+RETURNS @ActiveRoles table(
+	id int,
+	name varchar(30),
+	description text,
+	dateCreation datetime,
+	DateUpdate datetime,
+	isActive bit 
+	) 
+BEGIN
+	INSERT @ActiveRoles 
+		SELECT * FROM Roles
+		WHERE isActive = @Active
+	RETURN
+END;
+GO
+CREATE FUNCTION ActiveUsers (@Active bit)
+RETURNS @ActiveUsers table(
+	id int,
+	firstName varchar(30),
+	lastName varchar(30),
+	dni varchar(9),
+	birthDate datetime,
+	telephone varchar(11),
+	emaill varchar(50),
+	rolId int,
+	dateCreation datetime,
+	DateUpdate datetime,
+	isActive bit 
+	) 
+BEGIN
+	INSERT @ActiveUsers 
+		SELECT * FROM Users
+		WHERE isActive = @Active
+	RETURN
+END;
+GO
+CREATE FUNCTION ActiveLoans (@Active bit)
+RETURNS @ActiveLoans table(
+	id int,
+	bookId int,
+	userId int,
+	dateIssue datetime,
+	dateCompletion datetime,
+	statusId int,
+	dateCreation datetime,
+	DateUpdate datetime,
+	isActive bit 
+	) 
+BEGIN
+	INSERT @ActiveLoans 
+		SELECT * FROM Loans
+		WHERE isActive = @Active
+	RETURN
+END;
+GO
+CREATE FUNCTION ActiveStates (@Active bit)
+RETURNS @ActiveStates table(
+	id int,
+	name varchar(30),
+	description text,
+	dateCreation datetime,
+	DateUpdate datetime,
+	isActive bit 
+	) 
+BEGIN
+	INSERT @ActiveStates 
+		SELECT * FROM States
+		WHERE isActive = @Active
+	RETURN
+END;
+GO
 --VISTAS
 CREATE VIEW LoanedBooks AS 
-	SELECT * FROM Books 
-	WHERE id IN(SELECT bookId FROM Loans WHERE statusId = 1);
+	SELECT * FROM ActiveBooks(1) 
+	WHERE id IN(SELECT bookId FROM ActiveLoans(1) WHERE statusId = 1);
 GO
 CREATE VIEW AvailableBooks AS 
-	SELECT * FROM Books 
-	WHERE id NOT IN (SELECT bookId FROM Loans WHERE statusId = 1);
+	SELECT * FROM ActiveBooks(1) 
+	WHERE id NOT IN (SELECT bookId FROM ActiveLoans(1) WHERE statusId = 1);
 GO
 CREATE VIEW UsersWithLoans AS 
-	SELECT * FROM Users 
-	WHERE id IN(SELECT userId FROM Loans WHERE statusId = 1);
+	SELECT * FROM ActiveUsers(1) 
+	WHERE id IN(SELECT userId FROM ActiveLoans(1) WHERE statusId = 1);
 GO
 CREATE VIEW UsersWithoutLoans AS
-	SELECT * FROM Users 
-	WHERE id NOT IN(SELECT userId FROM Loans WHERE statusId = 1);
+	SELECT * FROM ActiveUsers(1) 
+	WHERE id NOT IN(SELECT userId FROM ActiveLoans(1) WHERE statusId = 1);
 GO
 CREATE VIEW LoansUsersBooks  AS 
-	SELECT Loans.id,u.id as 'User Id', u.firstName, u.lastName,b.id as 'Book Id', b.title, dateIssue, dateCompletion FROM  Loans
-	JOIN Users AS u ON userId = u.id
-	JOIN Books AS b on bookId = b.id;
+	SELECT l.id,u.id as 'User Id', u.firstName, u.lastName,b.id as 'Book Id', b.title, dateIssue, dateCompletion FROM  ActiveLoans(1) as l
+	JOIN ActiveUsers(1) AS u ON userId = u.id
+	JOIN ActiveBooks(1) AS b on bookId = b.id;
 GO
 CREATE VIEW BooksLocations AS
 	SELECT  bo.id AS BookId , bo.title AS BookName,
@@ -150,12 +323,12 @@ CREATE VIEW BooksLocations AS
 		ra.id AS RackId, ra.name AS RackName,
 		ro.id AS RoomId, ro.name AS RoomName,
 		br.id AS BranchId, br.name AS BranchName
-		FROM Books as bo
-	JOIN Sections AS se ON bo.sectionId = se.id
-	JOIN Shelves AS sh ON se.ShelfId = sh.id
-	JOIN Racks AS ra ON sh.rackId = ra.id
-	JOIN Rooms AS ro ON ra.roomId = ro.id
-	JOIN Branches AS br ON ro.branchId = br.id;
+		FROM ActiveBooks(1) as bo
+	JOIN ActiveSections(1) AS se ON bo.sectionId = se.id
+	JOIN ActiveShelves(1) AS sh ON se.ShelfId = sh.id
+	JOIN ActiveRacks(1) AS ra ON sh.rackId = ra.id
+	JOIN ActiveRooms(1) AS ro ON ra.roomId = ro.id
+	JOIN ActiveBranches(1) AS br ON ro.branchId = br.id;
 GO --hice esta vista porque es la mas amplia, con algunos WHERE podes ver todos los libros de una sucursal, o seccion, etc. Ademas, tambien podes limitar los campos
 
 /*	Vistas - Todos los salones, estanterias, estantes, secciones y libros de una sucursal
@@ -164,8 +337,8 @@ GO --hice esta vista porque es la mas amplia, con algunos WHERE podes ver todos 
 */
 CREATE FUNCTION checkUserRole(@UserId int, @RolId int) RETURNS bit
 BEGIN
-	if exists(SELECT * FROM Users as u 
-		INNER JOIN Roles as r ON u.rolId = r.id
+	if exists(SELECT * FROM ActiveUsers(1) as u 
+		INNER JOIN ActiveRoles(1) as r ON u.rolId = r.id
 		WHERE u.id =@UserId AND r.id = @RolId)
 	BEGIN
 		RETURN 1;
@@ -228,7 +401,7 @@ RETURNS @BooksWithName table (bookId int, bookName varchar(30), sectionId int)
 AS
 BEGIN
 	INSERT @BooksWithName
-		SELECT id, title, sectionId FROM Books
+		SELECT id, title, sectionId FROM ActiveBooks(1)
 		WHERE title = @Title
 	RETURN
 END;
@@ -250,8 +423,26 @@ END;
 GO
 CREATE FUNCTION userHasALoan(@Id int) RETURNS bit
 BEGIN
-	if exists(SELECT * FROM Loans 
+	if exists(SELECT * FROM ActiveLoans(1) 
 				WHERE userId = @Id AND statusId = 1)
+		RETURN 1;
+	RETURN 0;
+END;
+GO
+CREATE FUNCTION userHasTwoLoans(@Id int) RETURNS BIT
+BEGIN 
+	IF ((SELECT COUNT(*) FROM ActiveLoans(1) 
+		WHERE userId = @Id AND statusId = 1) 
+		= 2)
+		RETURN 1;
+	RETURN 0;
+END;
+GO
+CREATE FUNCTION bookInTwoLoans(@Id int) RETURNS BIT
+BEGIN 
+	IF ((SELECT COUNT(*) FROM ActiveLoans(1) 
+		WHERE bookId = @Id AND statusId = 1) 
+		= 2)
 		RETURN 1;
 	RETURN 0;
 END;
@@ -426,7 +617,7 @@ GO
 --Roles
 --No se como manejarlo todavia, no tiene sentido crear ni borrar Roles.Ya que son fijos
 --Users
-CREATE PROCEDURE insUser @CreatorId int, @FirstName varchar(20), @LastName varchar(30), @Dni varchar(9), @BirthDate datetime, @Telephone varchar(11), @Email varchar(30), @RolId int
+CREATE PROCEDURE insUser @CreatorId int, @FirstName varchar(30), @LastName varchar(30), @Dni varchar(9), @BirthDate datetime, @Telephone varchar(11), @Email varchar(50), @RolId int
 AS
 if (dbo.checkUserRole(@CreatorId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
@@ -448,7 +639,7 @@ CREATE PROCEDURE updUser @ModifierId int, @Id int,
 	@Dni varchar(9) = NULL,
 	@BirthDate datetime = NULL,
 	@Telephone varchar(11) = NULL,
-	@Email varchar(30) = NULL,
+	@Email varchar(50) = NULL,
 	@RolId int = NULL --VERIFICAR QUE UN USUARIO NO SE CAMBIE DE ROL A SI MISMO
 AS
 IF (dbo.checkUserRole(@ModifierId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
@@ -499,6 +690,23 @@ BEGIN
 END;
 GO
 
+CREATE TRIGGER LoansInsUpd 
+ON Loans
+FOR INSERT, UPDATE
+AS
+BEGIN
+	IF ((SELECT dbo.userHasTwoLoans(inserted.userId) FROM inserted) = 1)
+	BEGIN
+		raiserror('Ese usuario ya tiene un prestamo activo',16,1)
+		rollback transaction
+	END
+	IF ((SELECT dbo.bookInTwoLoans(inserted.bookId) FROM inserted) = 1) 
+	BEGIN
+		raiserror('Ese libro ya esta en un prestamo activo',16,1)
+		rollback transaction
+	END
+END;
+GO
 --Crear Registros
 insert into Roles (name, description)
 	values ('User', 'Usuario');
@@ -521,9 +729,12 @@ exec insRack 1,'Rack 1', 1;
 exec insShelf 1,'Shelf 1',1;
 exec insSection 1,'Section 1', 1;
 exec insBook 1,1, 'El hombre que calculaba', '33343434', 'Buen Libro?', 8;
+exec insBook 1,1, 'La Biblia', '33343434', 'Buen Libro?', 7;
 set dateformat dmy;
 exec insUser 1,'Gonzalo', 'Lattanzio','43598878','27-09-2001','1167918562','gonzalattanzio@gmail.com',1;
 exec insLoan 1, 1, 2, '21-09-2023','23-10-2023',1;
---exec updLoan 1, 1, @StatusId = 2;
+exec insLoan 1, 2, 1, '21-09-2023','23-10-2023',1;
+--exec updLoan 1, 1, @userId = 1;
 SELECT * FROM dbo.searchBooksByName('El hombre que calculaba');
 SELECT * FROM dbo.searchBook(1);
+SELECT * FROM dbo.ActiveLoans(1);
