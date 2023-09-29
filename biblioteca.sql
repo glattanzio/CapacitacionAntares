@@ -17,7 +17,6 @@ create table Branches(
 	isActive bit default 1 not null,
 	primary key (id)
 );
-
 create table Rooms(
 	id int identity,
 	name varchar(30) unique,
@@ -28,7 +27,6 @@ create table Rooms(
 	primary key (id),
 	constraint FK_Rooms_Branches foreign key (branchId) references Branches(id)
 );
-
 create table Racks(
 	id int identity,
 	name varchar(30) unique,
@@ -121,7 +119,7 @@ create table Loans(
 	constraint FK_Loans_States foreign key (statusId) references States(id)
 );
 GO
---SPs para filtrar por activos
+--Funciones para filtrar por activos
 CREATE FUNCTION ActiveBranches(@Active bit)
 RETURNS @ActiveBranches table(
 	id int,
@@ -187,7 +185,7 @@ BEGIN
 	RETURN
 END;
 GO
-CREATE FUNCTION ActiveSections (@Active bit)
+CREATE FUNCTION activeSections (@Active bit)
 RETURNS @ActiveSections table(
 	id int,
 	name varchar(30),
@@ -203,7 +201,7 @@ BEGIN
 	RETURN
 END;
 GO
-CREATE FUNCTION ActiveBooks (@Active bit)
+CREATE FUNCTION activeBooks (@Active bit)
 RETURNS @ActiveBooks table(
 	id int,
 	sectionId int,
@@ -222,7 +220,7 @@ BEGIN
 	RETURN
 END;
 GO
-CREATE FUNCTION ActiveRoles (@Active bit)
+CREATE FUNCTION activeRoles (@Active bit)
 RETURNS @ActiveRoles table(
 	id int,
 	name varchar(30),
@@ -238,7 +236,7 @@ BEGIN
 	RETURN
 END;
 GO
-CREATE FUNCTION ActiveUsers (@Active bit)
+CREATE FUNCTION activeUsers (@Active bit)
 RETURNS @ActiveUsers table(
 	id int,
 	firstName varchar(30),
@@ -259,7 +257,7 @@ BEGIN
 	RETURN
 END;
 GO
-CREATE FUNCTION ActiveLoans (@Active bit)
+CREATE FUNCTION activeLoans (@Active bit)
 RETURNS @ActiveLoans table(
 	id int,
 	bookId int,
@@ -278,7 +276,7 @@ BEGIN
 	RETURN
 END;
 GO
-CREATE FUNCTION ActiveStates (@Active bit)
+CREATE FUNCTION activeStates (@Active bit)
 RETURNS @ActiveStates table(
 	id int,
 	name varchar(30),
@@ -296,25 +294,25 @@ END;
 GO
 --VISTAS
 CREATE VIEW LoanedBooks AS 
-	SELECT * FROM ActiveBooks(1) 
-	WHERE id IN(SELECT bookId FROM ActiveLoans(1) WHERE statusId = 1);
+	SELECT * FROM activeBooks(1) 
+	WHERE id IN(SELECT bookId FROM activeLoans(1) WHERE statusId = 1);
 GO
 CREATE VIEW AvailableBooks AS 
-	SELECT * FROM ActiveBooks(1) 
-	WHERE id NOT IN (SELECT bookId FROM ActiveLoans(1) WHERE statusId = 1);
+	SELECT * FROM activeBooks(1) 
+	WHERE id NOT IN (SELECT bookId FROM activeLoans(1) WHERE statusId = 1);
 GO
 CREATE VIEW UsersWithLoans AS 
-	SELECT * FROM ActiveUsers(1) 
-	WHERE id IN(SELECT userId FROM ActiveLoans(1) WHERE statusId = 1);
+	SELECT * FROM activeUsers(1) 
+	WHERE id IN(SELECT userId FROM activeLoans(1) WHERE statusId = 1);
 GO
 CREATE VIEW UsersWithoutLoans AS
-	SELECT * FROM ActiveUsers(1) 
-	WHERE id NOT IN(SELECT userId FROM ActiveLoans(1) WHERE statusId = 1);
+	SELECT * FROM activeUsers(1) 
+	WHERE id NOT IN(SELECT userId FROM activeLoans(1) WHERE statusId = 1);
 GO
 CREATE VIEW LoansUsersBooks  AS 
-	SELECT l.id,u.id as 'User Id', u.firstName, u.lastName,b.id as 'Book Id', b.title, dateIssue, dateCompletion FROM  ActiveLoans(1) as l
-	JOIN ActiveUsers(1) AS u ON userId = u.id
-	JOIN ActiveBooks(1) AS b on bookId = b.id;
+	SELECT l.id,u.id as 'User Id', u.firstName, u.lastName,b.id as 'Book Id', b.title, dateIssue, dateCompletion FROM  activeLoans(1) as l
+	JOIN activeUsers(1) AS u ON userId = u.id
+	JOIN activeBooks(1) AS b on bookId = b.id;
 GO
 CREATE VIEW BooksLocations AS
 	SELECT  bo.id AS BookId , bo.title AS BookName,
@@ -323,12 +321,12 @@ CREATE VIEW BooksLocations AS
 		ra.id AS RackId, ra.name AS RackName,
 		ro.id AS RoomId, ro.name AS RoomName,
 		br.id AS BranchId, br.name AS BranchName
-		FROM ActiveBooks(1) as bo
-	JOIN ActiveSections(1) AS se ON bo.sectionId = se.id
-	JOIN ActiveShelves(1) AS sh ON se.ShelfId = sh.id
-	JOIN ActiveRacks(1) AS ra ON sh.rackId = ra.id
-	JOIN ActiveRooms(1) AS ro ON ra.roomId = ro.id
-	JOIN ActiveBranches(1) AS br ON ro.branchId = br.id;
+		FROM activeBooks(1) as bo
+	JOIN activeSections(1) AS se ON bo.sectionId = se.id
+	JOIN activeShelves(1) AS sh ON se.ShelfId = sh.id
+	JOIN activeRacks(1) AS ra ON sh.rackId = ra.id
+	JOIN activeRooms(1) AS ro ON ra.roomId = ro.id
+	JOIN activeBranches(1) AS br ON ro.branchId = br.id;
 GO --hice esta vista porque es la mas amplia, con algunos WHERE podes ver todos los libros de una sucursal, o seccion, etc. Ademas, tambien podes limitar los campos
 
 /*	Vistas - Todos los salones, estanterias, estantes, secciones y libros de una sucursal
@@ -337,8 +335,8 @@ GO --hice esta vista porque es la mas amplia, con algunos WHERE podes ver todos 
 */
 CREATE FUNCTION checkUserRole(@UserId int, @RolId int) RETURNS bit
 BEGIN
-	if exists(SELECT * FROM ActiveUsers(1) as u 
-		INNER JOIN ActiveRoles(1) as r ON u.rolId = r.id
+	if exists(SELECT * FROM activeUsers(1) as u 
+		INNER JOIN activeRoles(1) as r ON u.rolId = r.id
 		WHERE u.id =@UserId AND r.id = @RolId)
 	BEGIN
 		RETURN 1;
@@ -401,7 +399,7 @@ RETURNS @BooksWithName table (bookId int, bookName varchar(30), sectionId int)
 AS
 BEGIN
 	INSERT @BooksWithName
-		SELECT id, title, sectionId FROM ActiveBooks(1)
+		SELECT id, title, sectionId FROM activeBooks(1)
 		WHERE title = @Title
 	RETURN
 END;
@@ -423,7 +421,7 @@ END;
 GO
 CREATE FUNCTION userHasALoan(@Id int) RETURNS bit
 BEGIN
-	if exists(SELECT * FROM ActiveLoans(1) 
+	if exists(SELECT * FROM activeLoans(1) 
 				WHERE userId = @Id AND statusId = 1)
 		RETURN 1;
 	RETURN 0;
@@ -431,7 +429,7 @@ END;
 GO
 CREATE FUNCTION userHasTwoLoans(@Id int) RETURNS BIT
 BEGIN 
-	IF ((SELECT COUNT(*) FROM ActiveLoans(1) 
+	IF ((SELECT COUNT(*) FROM activeLoans(1) 
 		WHERE userId = @Id AND statusId = 1) 
 		= 2)
 		RETURN 1;
@@ -440,7 +438,7 @@ END;
 GO
 CREATE FUNCTION bookInTwoLoans(@Id int) RETURNS BIT
 BEGIN 
-	IF ((SELECT COUNT(*) FROM ActiveLoans(1) 
+	IF ((SELECT COUNT(*) FROM activeLoans(1) 
 		WHERE bookId = @Id AND statusId = 1) 
 		= 2)
 		RETURN 1;
