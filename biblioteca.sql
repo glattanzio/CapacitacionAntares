@@ -65,7 +65,7 @@ create table Books(
 	synopsis text,
 	rating int,
 	dateCreation datetime default getdate() not null,
-	dateUpdate datetime default getdate() not null,
+	dateUpdate datetime default getdate() not null, --buscar si existe funcion que cuando updatee la tabla 
 	isActive bit default 1 not null,
 	primary key (id),
 	constraint FK_Books_Sections foreign key (sectionId) references Sections(id)
@@ -119,7 +119,7 @@ create table Loans(
 	constraint FK_Loans_States foreign key (statusId) references States(id)
 );
 GO
---Funciones para filtrar por activos
+--Funciones para filtrar por activos (cambiar a SP (getActiveBranches)) si el parametro es 0 devuelve todos
 CREATE FUNCTION ActiveBranches(@Active bit)
 RETURNS @ActiveBranches table(
 	id int,
@@ -131,11 +131,19 @@ RETURNS @ActiveBranches table(
 	isActive bit 
 	) 
 BEGIN
-	INSERT @ActiveBranches 
-		SELECT * FROM Branches
-		WHERE isActive = @Active
+	IF(@Active = 1)
+		INSERT @ActiveBranches 
+			SELECT * FROM Branches
+			WHERE isActive = 1
+	ELSE
+		INSERT @ActiveBranches 
+			SELECT * FROM Branches
 	RETURN
 END;
+GO
+CREATE PROCEDURE SPActiveBranches @Active bit
+AS
+	SELECT * FROM ActiveBranches(@Active)
 GO
 CREATE FUNCTION ActiveRooms (@Active bit)
 RETURNS @ActiveRooms table(
@@ -147,11 +155,19 @@ RETURNS @ActiveRooms table(
 	isActive bit 
 	) 
 BEGIN
-	INSERT @ActiveRooms 
-		SELECT * FROM Rooms
-		WHERE isActive = @Active
+	IF(@Active = 1)
+		INSERT @ActiveRooms
+			SELECT * FROM Rooms
+			WHERE isActive = 1
+	ELSE
+		INSERT @ActiveRooms 
+			SELECT * FROM Rooms
 	RETURN
 END;
+GO
+CREATE PROCEDURE SPActiveRooms @Active bit
+AS
+	SELECT * FROM ActiveRooms(@Active)
 GO
 CREATE FUNCTION ActiveRacks (@Active bit)
 RETURNS @ActiveRacks table(
@@ -163,11 +179,19 @@ RETURNS @ActiveRacks table(
 	isActive bit 
 	) 
 BEGIN
-	INSERT @ActiveRacks 
-		SELECT * FROM Racks
-		WHERE isActive = @Active
+	IF(@Active = 1)
+		INSERT @ActiveRacks
+			SELECT * FROM Racks
+			WHERE isActive = 1
+	ELSE
+		INSERT @ActiveRacks 
+			SELECT * FROM Racks
 	RETURN
 END;
+GO
+CREATE PROCEDURE SPActiveRacks @Active bit
+AS
+	SELECT * FROM ActiveRacks(@Active)
 GO
 CREATE FUNCTION ActiveShelves (@Active bit)
 RETURNS @ActiveShelves table(
@@ -179,11 +203,19 @@ RETURNS @ActiveShelves table(
 	isActive bit 
 	) 
 BEGIN
-	INSERT @ActiveShelves 
-		SELECT * FROM Shelves
-		WHERE isActive = @Active
+	IF(@Active = 1)
+		INSERT @ActiveShelves
+			SELECT * FROM Shelves
+			WHERE isActive = 1
+	ELSE
+		INSERT @ActiveShelves 
+			SELECT * FROM Shelves
 	RETURN
 END;
+GO
+CREATE PROCEDURE SPActiveShelves @Active bit
+AS
+	SELECT * FROM ActiveShelves(@Active)
 GO
 CREATE FUNCTION activeSections (@Active bit)
 RETURNS @ActiveSections table(
@@ -195,11 +227,19 @@ RETURNS @ActiveSections table(
 	isActive bit 
 	) 
 BEGIN
-	INSERT @ActiveSections 
-		SELECT * FROM Sections
-		WHERE isActive = @Active
+	IF(@Active = 1)
+		INSERT @ActiveSections
+			SELECT * FROM Sections
+			WHERE isActive = 1
+	ELSE
+		INSERT @ActiveSections 
+			SELECT * FROM Sections
 	RETURN
 END;
+GO
+CREATE PROCEDURE SPActiveSections @Active bit
+AS
+	SELECT * FROM activeSections(@Active)
 GO
 CREATE FUNCTION activeBooks (@Active bit)
 RETURNS @ActiveBooks table(
@@ -214,11 +254,19 @@ RETURNS @ActiveBooks table(
 	isActive bit 
 	) 
 BEGIN
-	INSERT @ActiveBooks 
-		SELECT * FROM Books
-		WHERE isActive = @Active
+	IF(@Active = 1)
+		INSERT @ActiveBooks
+			SELECT * FROM Books
+			WHERE isActive = 1
+	ELSE
+		INSERT @ActiveBooks 
+			SELECT * FROM Books
 	RETURN
 END;
+GO
+CREATE PROCEDURE SPActiveBooks @Active bit
+AS
+	SELECT * FROM activeBooks(@Active)
 GO
 CREATE FUNCTION activeRoles (@Active bit)
 RETURNS @ActiveRoles table(
@@ -230,11 +278,19 @@ RETURNS @ActiveRoles table(
 	isActive bit 
 	) 
 BEGIN
-	INSERT @ActiveRoles 
-		SELECT * FROM Roles
-		WHERE isActive = @Active
+	IF(@Active = 1)
+		INSERT @ActiveRoles
+			SELECT * FROM Roles
+			WHERE isActive = 1
+	ELSE
+		INSERT @ActiveRoles 
+			SELECT * FROM Roles
 	RETURN
 END;
+GO
+CREATE PROCEDURE SPActiveRoles @Active bit
+AS
+	SELECT * FROM activeRoles(@Active)
 GO
 CREATE FUNCTION activeUsers (@Active bit)
 RETURNS @ActiveUsers table(
@@ -251,11 +307,19 @@ RETURNS @ActiveUsers table(
 	isActive bit 
 	) 
 BEGIN
-	INSERT @ActiveUsers 
-		SELECT * FROM Users
-		WHERE isActive = @Active
+	IF(@Active = 1)
+		INSERT @ActiveUsers
+			SELECT * FROM Users
+			WHERE isActive = 1
+	ELSE
+		INSERT @ActiveUsers 
+			SELECT * FROM Users
 	RETURN
 END;
+GO
+CREATE PROCEDURE SPActiveUsers @Active bit
+AS
+	SELECT * FROM activeUsers(@Active)
 GO
 CREATE FUNCTION activeLoans (@Active bit)
 RETURNS @ActiveLoans table(
@@ -270,11 +334,19 @@ RETURNS @ActiveLoans table(
 	isActive bit 
 	) 
 BEGIN
-	INSERT @ActiveLoans 
-		SELECT * FROM Loans
-		WHERE isActive = @Active
+	IF(@Active = 1)
+		INSERT @ActiveLoans
+			SELECT * FROM Loans
+			WHERE isActive = 1
+	ELSE
+		INSERT @ActiveLoans 
+			SELECT * FROM Loans
 	RETURN
 END;
+GO
+CREATE PROCEDURE SPActiveLoans @Active bit
+AS
+	SELECT * FROM activeLoans(@Active)
 GO
 CREATE FUNCTION activeStates (@Active bit)
 RETURNS @ActiveStates table(
@@ -286,10 +358,25 @@ RETURNS @ActiveStates table(
 	isActive bit 
 	) 
 BEGIN
-	INSERT @ActiveStates 
-		SELECT * FROM States
-		WHERE isActive = @Active
+	IF(@Active = 1)
+		INSERT @ActiveStates
+			SELECT * FROM States
+			WHERE isActive = 1
+	ELSE
+		INSERT @ActiveStates 
+			SELECT * FROM States
 	RETURN
+END;
+GO
+CREATE PROCEDURE SPActiveStates @Active bit
+AS
+	SELECT * FROM activeStates(@Active)
+GO
+
+CREATE FUNCTION isDateDue(@Date datetime) RETURNS BIT
+BEGIN
+	IF(@Date < GETDATE()) RETURN 1;
+	RETURN 0;
 END;
 GO
 --VISTAS
@@ -310,9 +397,11 @@ CREATE VIEW UsersWithoutLoans AS
 	WHERE id NOT IN(SELECT userId FROM activeLoans(1) WHERE statusId = 1);
 GO
 CREATE VIEW LoansUsersBooks  AS 
-	SELECT l.id,u.id as 'User Id', u.firstName, u.lastName,b.id as 'Book Id', b.title, dateIssue, dateCompletion FROM  activeLoans(1) as l
+	SELECT l.id,u.id as 'UserId', u.firstName, u.lastName,b.id as 'BookId', b.title, dateIssue, dbo.isDateDue(dateCompletion) AS 'isDue', s.name as 'Status'
+	FROM  activeLoans(1) as l
 	JOIN activeUsers(1) AS u ON userId = u.id
-	JOIN activeBooks(1) AS b on bookId = b.id;
+	JOIN activeBooks(1) AS b on bookId = b.id
+	JOIN activeStates(1) AS s ON statusId = s.id;
 GO
 CREATE VIEW BooksLocations AS
 	SELECT  bo.id AS BookId , bo.title AS BookName,
@@ -687,7 +776,6 @@ BEGIN
 	WHERE id = @Id
 END;
 GO
-
 CREATE TRIGGER LoansInsUpd 
 ON Loans
 FOR INSERT, UPDATE
@@ -730,9 +818,18 @@ exec insBook 1,1, 'El hombre que calculaba', '33343434', 'Buen Libro?', 8;
 exec insBook 1,1, 'La Biblia', '33343434', 'Buen Libro?', 7;
 set dateformat dmy;
 exec insUser 1,'Gonzalo', 'Lattanzio','43598878','27-09-2001','1167918562','gonzalattanzio@gmail.com',1;
-exec insLoan 1, 1, 2, '21-09-2023','23-10-2023',1;
+exec insLoan 1, 1, 2, '21-09-2023','23-9-2023',1;
 exec insLoan 1, 2, 1, '21-09-2023','23-10-2023',1;
 --exec updLoan 1, 1, @userId = 1;
-SELECT * FROM dbo.searchBooksByName('El hombre que calculaba');
-SELECT * FROM dbo.searchBook(1);
-SELECT * FROM dbo.ActiveLoans(1);
+--SELECT * FROM dbo.searchBooksByName('El hombre que calculaba');
+--SELECT * FROM dbo.searchBook(1);
+--SELECT * FROM dbo.ActiveLoans(1);
+SELECT * FROM Loans;
+exec updLoan 1,1, @StatusId = 2;
+SELECT dbo.userHasALoan(2);
+--SP que encuentre loan por libro y usuario
+SELECT * FROM LoansUsersBooks;
+SELECT * FROM BooksLocations;
+IF ((SELECT birthDate FROM Users WHERE id =2) < getdate()) SELECT 'SI'
+	ELSE SELECT 'NO';
+
