@@ -63,7 +63,7 @@ create table Books(
 	title varchar(30),
 	isbn varchar(13), --codigo alfanumerico International Standard Book Number, puede ser util para buscar un libro.
 	synopsis text,
-	rating int,
+	rating decimal,
 	dateCreation datetime default getdate() not null,
 	dateUpdate datetime default getdate() not null, --buscar si existe funcion que cuando updatee la tabla 
 	isActive bit default 1 not null,
@@ -248,7 +248,7 @@ RETURNS @ActiveBooks table(
 	title varchar(30),
 	isbn varchar(13),
 	synopsis text,
-	rating int,
+	rating decimal,
 	dateCreation datetime,
 	DateUpdate datetime,
 	isActive bit 
@@ -555,24 +555,20 @@ BEGIN
 END;
 GO
 CREATE PROCEDURE SPupdBranch @ModifierId int, @Id int,
-	@Name varchar(30) = NULL,
-	@City varchar(30) = NULL, 
-	@Employees int = NULL
+	@Name varchar(30),
+	@City varchar(30), 
+	@Employees int
 AS
 if (dbo.checkUserRole(@ModifierId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
-	if (@Name is  NULL) SET @Name = (SELECT name FROM Branches WHERE id = @Id);
-	if (@City is NULL) SET @City = (SELECT city FROM Branches WHERE id = @Id);
-	if (@Employees is NULL) SET @Employees = (SELECT employees FROM Branches WHERE id = @Id);
 	UPDATE Branches SET name = @Name, city = @City, employees = @Employees, dateUpdate = GETDATE()
 	OUTPUT inserted.id
 	WHERE id = @Id
 END;
 GO
-CREATE PROCEDURE SPgetBranch @Id int
+CREATE PROCEDURE SPgetBranches @IsActive bit
 AS
-	SELECT * FROM Branches
-	WHERE id = @Id
+	SELECT * FROM activeBranches(@IsActive)
 GO
 --Rooms
 CREATE PROCEDURE SPinsRoom @CreatorId int, @Name varchar(30), @BranchId int
@@ -593,19 +589,18 @@ BEGIN
 	WHERE id = @Id
 END;
 GO
-CREATE PROCEDURE SPupdRoom @ModifierId int, @Id int, @BranchId int --no pongo valor por defecto, como es el unico dato a cargar lo tiene que cargar
+CREATE PROCEDURE SPupdRoom @ModifierId int,@Id int,@Name varchar(30), @BranchId int 
 AS
 if (dbo.checkUserRole(@ModifierId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
-	UPDATE Rooms SET branchId = @BranchId, dateUpdate = GETDATE()
+	UPDATE Rooms SET name = @Name, branchId = @BranchId, dateUpdate = GETDATE()
 	OUTPUT inserted.id
 	WHERE id = @Id
 END;
 GO
-CREATE PROCEDURE SPgetRoom @Id int
+CREATE PROCEDURE SPgetRooms @IsActive bit
 AS
-	SELECT * FROM Rooms
-	WHERE id = @Id
+	SELECT * FROM activeRooms(@IsActive)
 GO
 --Racks
 CREATE PROCEDURE SPinsRack @CreatorId int, @Name varchar(30), @RoomId int
@@ -626,19 +621,18 @@ BEGIN
 	WHERE id = @Id
 END;
 GO
-CREATE PROCEDURE SPupdRack @ModifierId int, @Id int, @RoomId int --no pongo valor por defecto, como es el unico dato a cargar lo tiene que cargar
+CREATE PROCEDURE SPupdRack @ModifierId int, @Id int,@Name varchar(30), @RoomId int
 AS
 if (dbo.checkUserRole(@ModifierId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
-	UPDATE Racks SET roomId = @RoomId, dateUpdate = GETDATE()
+	UPDATE Racks SET name = @Name, roomId = @RoomId, dateUpdate = GETDATE()
 	OUTPUT inserted.id
 	WHERE id = @Id
 END;
 GO
-CREATE PROCEDURE SPgetRack @Id int
+CREATE PROCEDURE SPgetRacks @IsActive bit
 AS
-	SELECT * FROM Racks
-	WHERE id = @Id
+	SELECT * FROM activeRacks(@IsActive)
 GO
 --Shelves
 CREATE PROCEDURE SPinsShelf @CreatorId int,@Name varchar(30), @RackId int
@@ -659,19 +653,18 @@ BEGIN
 	WHERE id = @Id
 END;
 GO
-CREATE PROCEDURE SPupdShelf @ModifierId int, @Id int, @RackId int --no pongo valor por defecto, como es el unico dato a cargar lo tiene que cargar
+CREATE PROCEDURE SPupdShelf @ModifierId int, @Id int,@Name varchar(30), @RackId int 
 AS
 if (dbo.checkUserRole(@ModifierId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
-	UPDATE Shelves SET rackId = @RackId, dateUpdate = GETDATE()
+	UPDATE Shelves SET name = @Name, rackId = @RackId, dateUpdate = GETDATE()
 	OUTPUT inserted.id
 	WHERE id = @Id
 END;
 GO
-CREATE PROCEDURE SPgetShelf @Id int
+CREATE PROCEDURE SPgetShelves @IsActive bit
 AS
-	SELECT * FROM Shelves
-	WHERE id = @Id
+	SELECT * FROM activeShelves(@IsActive)
 GO
 --Sections
 CREATE PROCEDURE SPinsSection @CreatorId int, @Name varchar(30), @ShelfId int
@@ -692,19 +685,18 @@ BEGIN
 	WHERE id = @Id
 END;
 GO
-CREATE PROCEDURE SPupdSection @ModifierId int, @Id int, @ShelfId int --no pongo valor por defecto, como es el unico dato a cargar lo tiene que cargar
+CREATE PROCEDURE SPupdSection @ModifierId int, @Id int,@Name varchar(30), @ShelfId int
 AS
 if (dbo.checkUserRole(@ModifierId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
-	UPDATE Sections SET shelfId = @ShelfId, dateUpdate = GETDATE()
+	UPDATE Sections SET name = @Name, shelfId = @ShelfId, dateUpdate = GETDATE()
 	OUTPUT inserted.id
 	WHERE id = @Id
 END;
 GO
-CREATE PROCEDURE SPgetSection @Id int
+CREATE PROCEDURE SPgetSections @IsActive bit
 AS
-	SELECT * FROM Sections
-	WHERE id = @Id
+	SELECT * FROM activeSections(@IsActive)
 GO
 --Books
 CREATE PROCEDURE SPinsBook @CreatorId int, @SectionId int, @Title varchar(30), @Isbn varchar(13), @Synopsis text, @Rating decimal
@@ -726,28 +718,22 @@ BEGIN
 END;
 GO
 CREATE PROCEDURE SPupdBook @ModifierId int, @Id int, 
-	@SectionId int = NULL,
-	@Title varchar(30) = NULL,
-	@Isbn varchar(13) = NULL,
-	@Synopsis text = NULL,
-	@Rating decimal = NULL
+	@SectionId int,
+	@Title varchar(30),
+	@Isbn varchar(13),
+	@Synopsis text,
+	@Rating decimal 
 AS
 if (dbo.checkUserRole(@ModifierId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
-	if (@SectionId is NULL) SET @SectionId = (SELECT sectionId from Books WHERE id = @Id);
-	if (@Title is NULL) SET @Title = (SELECT title from Books WHERE id = @Id);
-	if (@Isbn is NULL) SET @Isbn = (SELECT isbn from Books WHERE id = @Id);
-	if (@Synopsis is NULL) SET @Synopsis = (SELECT synopsis from Books WHERE id = @Id);
-	if (@Rating is NULL) SET @Rating = (SELECT rating from Books WHERE id = @Id);
 	UPDATE Books SET sectionId = @SectionId, title = @Title, isbn = @Isbn, synopsis = @Synopsis, rating = @Rating, dateUpdate = GETDATE()
 	OUTPUT inserted.id
 	WHERE id = @Id
 END;
 GO
-CREATE PROCEDURE SPgetBook @Id int
+CREATE PROCEDURE SPgetBooks @IsActive bit
 AS
-	SELECT * FROM Books
-	WHERE id = @Id
+	SELECT * FROM activeBooks(@IsActive)
 GO
 --Roles
 --No se como manejarlo todavia, no tiene sentido crear ni borrar Roles.Ya que son fijos
@@ -814,8 +800,8 @@ AS
 if (dbo.checkUserRole(@DeleterId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
 	UPDATE Loans SET isActive=0, dateUpdate = getdate()
-	OUTPUT inserted.id
 	WHERE id = @Id
+	SELECT id from Loans WHERE id = SCOPE_IDENTITY()
 END;
 GO
 CREATE PROCEDURE SPupdLoan @ModifierId int, @Id int, 
@@ -885,7 +871,7 @@ exec SPinsBook 1,1, 'La Biblia', '33343434', 'Buen Libro?', 7;
 set dateformat dmy;
 exec SPinsUser 1,'Gonzalo', 'Lattanzio','43598878','27-09-2001','1167918562','gonzalattanzio@gmail.com',1;
 exec SPinsLoan 1, 1, 2, '21-09-2023','23-9-2023',1;
-exec SPinsLoan 1, 2, 1, '21-09-2023','23-10-2023',1;
+--exec SPinsLoan 1, 2, 1, '21-09-2023','23-10-2023',1;
 --exec updLoan 1, 1, @userId = 1;
 --SELECT * FROM dbo.searchBooksByName('El hombre que calculaba');
 --SELECT * FROM dbo.searchBook(1);
@@ -897,6 +883,7 @@ SELECT * FROM LoansUsersBooks;
 SELECT * FROM BooksLocations;
 IF ((SELECT birthDate FROM Users WHERE id =2) < getdate()) SELECT 'SI'
 	ELSE SELECT 'NO';
-EXEC SPgetLoans 1;
+EXEC SPgetLoans 0;
 exec SPsearchLoan 1, 2;
 SELECT * FROM Users;
+exec SPgetBooks 0;
