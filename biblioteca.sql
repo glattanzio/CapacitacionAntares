@@ -771,13 +771,13 @@ BEGIN
 END;
 GO
 CREATE PROCEDURE SPupdUser @ModifierId int, @Id int,
-	@FirstName varchar(30) = NULL,
-	@LastName varchar(30) =  NULL,
-	@Dni varchar(9) = NULL,
-	@BirthDate datetime = NULL,
-	@Telephone varchar(11) = NULL,
-	@Email varchar(50) = NULL,
-	@RolId int = NULL --VERIFICAR QUE UN USUARIO NO SE CAMBIE DE ROL A SI MISMO
+	@FirstName varchar(30),
+	@LastName varchar(30),
+	@Dni varchar(9),
+	@BirthDate datetime,
+	@Telephone varchar(11),
+	@Email varchar(50),
+	@RolId int --VERIFICAR QUE UN USUARIO NO SE CAMBIE DE ROL A SI MISMO
 AS
 IF (dbo.checkUserRole(@ModifierId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
@@ -787,17 +787,17 @@ BEGIN
 END;
 ELSE
 BEGIN
-	IF (dbo.checkUserRole(@ModifierId,(SELECT id FROM Roles WHERE name = 'uSER')) = 1) AND (@ModifierId = @Id)
+	IF (dbo.checkUserRole(@ModifierId,(SELECT id FROM Roles WHERE name = 'User')) = 1) AND (@ModifierId = @Id)
 	BEGIN
 		UPDATE Users SET firstName = @FirstName, lastName = @LastName, dni = @Dni,birthDate = @BirthDate,telephone= @Telephone, email = @Email ,dateUpdate=getdate()
+		OUTPUT inserted.id
 		WHERE id = @Id
 	END;
 END;
 GO
-CREATE PROCEDURE SPgetUser @Id int
+CREATE PROCEDURE SPgetUsers @isActive int
 AS
-	SELECT * FROM Users
-	WHERE id = @Id
+	SELECT * FROM activeUsers(@isActive)
 GO
 --Loans
 CREATE PROCEDURE SPinsLoan @CreatorId int, @BookId int, @UserId int, @DateIssue datetime, @DateCompletion datetime, @StatusId int
@@ -819,26 +819,22 @@ BEGIN
 END;
 GO
 CREATE PROCEDURE SPupdLoan @ModifierId int, @Id int, 
-@UserId int = NULL, 
-@DateIssue datetime = NULL, 
-@DateCompletion datetime = NULL,
-@StatusId int = NULL
+@BookId int,
+@UserId int,
+@DateIssue datetime, 
+@DateCompletion datetime,
+@StatusId int
 AS
 if (dbo.checkUserRole(@ModifierId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
-	if (@UserId is NULL) SET @UserId = (SELECT userId FROM Loans WHERE id = @Id);
-	if (@DateIssue is NULL) SET @DateIssue = (SELECT dateIssue FROM Loans WHERE id = @Id);
-	if (@DateCompletion is NULL) SET @DateCompletion = (SELECT dateCompletion FROM Loans WHERE id = @Id);
-	if (@StatusId is NULL) SET @StatusId = (SELECT statusId FROM Loans WHERE id = @Id);
-	UPDATE Loans SET userId = @UserId, dateIssue = @DateIssue, dateCompletion = @DateCompletion,statusId = @StatusId, dateUpdate = GETDATE()
+	UPDATE Loans SET bookId = @BookId, userId = @UserId, dateIssue = @DateIssue, dateCompletion = @DateCompletion,statusId = @StatusId, dateUpdate = GETDATE()
 	WHERE id = @Id
 	SELECT id FROM Loans WHERE id = @Id
 END;
 GO
-CREATE PROCEDURE SPgetLoan @Id int
+CREATE PROCEDURE SPgetLoans @IsActive bit
 AS
-	SELECT * FROM Loans
-	WHERE id = @Id
+	SELECT * FROM activeLoans(@IsACtive)
 GO
 
 CREATE PROCEDURE SPsearchLoan @BookId int, @UserId int
@@ -895,11 +891,12 @@ exec SPinsLoan 1, 2, 1, '21-09-2023','23-10-2023',1;
 --SELECT * FROM dbo.searchBook(1);
 --SELECT * FROM dbo.ActiveLoans(1);
 SELECT * FROM Loans;
-exec SPupdLoan 1,1, @StatusId = 2;
+--exec SPupdLoan 1,1, @StatusId = 2;
 SELECT dbo.userHasALoan(2);
 SELECT * FROM LoansUsersBooks;
 SELECT * FROM BooksLocations;
 IF ((SELECT birthDate FROM Users WHERE id =2) < getdate()) SELECT 'SI'
 	ELSE SELECT 'NO';
-EXEC SPgetLoan 1;
+EXEC SPgetLoans 1;
 exec SPsearchLoan 1, 2;
+SELECT * FROM Users;
