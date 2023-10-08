@@ -379,22 +379,38 @@ BEGIN
 	RETURN 0;
 END;
 GO
---VISTAS
+--VISTAS --HACER SPS QUE LAS DEVUELVAN, PARA C#
 CREATE VIEW LoanedBooks AS 
 	SELECT * FROM activeBooks(1) 
 	WHERE id IN(SELECT bookId FROM activeLoans(1) WHERE statusId = 1);
+GO
+CREATE PROCEDURE SPloanedbooks
+AS
+	SELECT * FROM LoanedBooks
 GO
 CREATE VIEW AvailableBooks AS 
 	SELECT * FROM activeBooks(1) 
 	WHERE id NOT IN (SELECT bookId FROM activeLoans(1) WHERE statusId = 1);
 GO
+CREATE PROCEDURE SPavailableBooks 
+AS
+	SELECT * FROM AvailableBooks;
+GO
 CREATE VIEW UsersWithLoans AS 
 	SELECT * FROM activeUsers(1) 
 	WHERE id IN(SELECT userId FROM activeLoans(1) WHERE statusId = 1);
 GO
+CREATE PROCEDURE SPusersWithLoans
+AS
+	SELECT * FROM UsersWithLoans;
+GO
 CREATE VIEW UsersWithoutLoans AS
 	SELECT * FROM activeUsers(1) 
 	WHERE id NOT IN(SELECT userId FROM activeLoans(1) WHERE statusId = 1);
+GO
+CREATE PROCEDURE SPusersWithoutLoans 
+AS
+	SELECT * FROM UsersWithoutLoans;
 GO
 CREATE VIEW LoansUsersBooks  AS 
 	SELECT l.id,u.id as 'UserId', u.firstName, u.lastName,b.id as 'BookId', b.title, dateIssue, dbo.isDateDue(dateCompletion) AS 'isDue', s.name as 'Status'
@@ -402,6 +418,10 @@ CREATE VIEW LoansUsersBooks  AS
 	JOIN activeUsers(1) AS u ON userId = u.id
 	JOIN activeBooks(1) AS b on bookId = b.id
 	JOIN activeStates(1) AS s ON statusId = s.id;
+GO
+CREATE PROCEDURE SPloansUsersBooks  --NECESITA DTO
+AS
+	SELECT * FROM LoansUsersBooks;
 GO
 CREATE VIEW BooksLocations AS
 	SELECT  bo.id AS BookId , bo.title AS BookName,
@@ -417,7 +437,10 @@ CREATE VIEW BooksLocations AS
 	JOIN activeRooms(1) AS ro ON ra.roomId = ro.id
 	JOIN activeBranches(1) AS br ON ro.branchId = br.id;
 GO --hice esta vista porque es la mas amplia, con algunos WHERE podes ver todos los libros de una sucursal, o seccion, etc. Ademas, tambien podes limitar los campos
-
+CREATE PROCEDURE SPbooksLocations 
+AS
+	SELECT * FROM BooksLocations;
+GO
 /*	Vistas - Todos los salones, estanterias, estantes, secciones y libros de una sucursal
 	Funciones- Buscar libros por sucursal, libros por salon, seccion, estante, buscar ubicacion de un libro, dado un usuario buscar el rol, dado un rol devolver todos los usuarios que lo usan
 	Triggers: Modificar fechas de update, modificar estado de libros 
@@ -826,7 +849,7 @@ GO
 CREATE PROCEDURE SPsearchLoan @BookId int, @UserId int
 AS
 	SELECT * FROM activeLoans(1)
-	WHERE bookId = @BookId AND userId = @UserID
+	WHERE bookId = @BookId AND userId = @UserID AND statusId = 1
 GO
 CREATE TRIGGER LoansInsUpd 
 ON Loans
@@ -886,4 +909,5 @@ IF ((SELECT birthDate FROM Users WHERE id =2) < getdate()) SELECT 'SI'
 EXEC SPgetLoans 0;
 exec SPsearchLoan 1, 2;
 SELECT * FROM Users;
-exec SPgetBooks 0;
+
+
