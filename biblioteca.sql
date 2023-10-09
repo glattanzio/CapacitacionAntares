@@ -531,6 +531,10 @@ BEGIN
 	RETURN
 END;
 GO
+CREATE PROCEDURE SPsearchBook @Id int
+AS
+	SELECT * FROM searchBook(@Id)
+GO
 CREATE FUNCTION userHasALoan(@Id int) RETURNS bit
 BEGIN
 	if exists(SELECT * FROM activeLoans(1) 
@@ -910,4 +914,4 @@ EXEC SPgetLoans 0;
 exec SPsearchLoan 1, 2;
 SELECT * FROM Users;
 
-
+exec SPloansUsersBooks;
