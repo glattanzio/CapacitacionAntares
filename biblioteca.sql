@@ -883,6 +883,7 @@ insert into States (name, description)
 	values ('Active','Activo');
 insert into States (name, description)
 	values ('Finished','Terminado');
+/*
 insert into Users (firstName, lastName,dni, birthDate, telephone, email, rolId)
 VALUES ('Pedro','Admin','12345678','01-01-1991','1234567890','pedro@admin.com',3);
 
@@ -914,4 +915,4 @@ EXEC SPgetLoans 0;
 exec SPsearchLoan 1, 2;
 SELECT * FROM Users;
 
-exec SPloansUsersBooks;
+exec SPloansUsersBooks;*/
