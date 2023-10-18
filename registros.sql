@@ -1,4 +1,6 @@
 use AtlasBook;
+DELETE FROM Loans;
+DBCC CHECKIDENT(Loans, RESEED,0);
 DELETE FROM Users;
 DBCC CHECKIDENT (Users, RESEED,0);
 insert into Users (firstName, lastName,dni, birthDate, telephone, email, rolId)

@@ -300,7 +300,7 @@ RETURNS @ActiveUsers table(
 	dni varchar(9),
 	birthDate datetime,
 	telephone varchar(11),
-	emaill varchar(50),
+	email varchar(50),
 	rolId int,
 	dateCreation datetime,
 	DateUpdate datetime,
