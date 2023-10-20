@@ -764,6 +764,10 @@ AS
 GO
 --Roles
 --No se como manejarlo todavia, no tiene sentido crear ni borrar Roles.Ya que son fijos
+CREATE PROCEDURE SPgetRoles @isActive int
+AS
+	SELECT * FROM activeRoles(@isActive)
+GO
 --Users
 CREATE PROCEDURE SPinsUser @CreatorId int, @FirstName varchar(30), @LastName varchar(30), @Dni varchar(9), @BirthDate datetime, @Telephone varchar(11), @Email varchar(50), @RolId int
 AS
@@ -779,6 +783,15 @@ AS
 if (dbo.checkUserRole(@DeleterId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
 BEGIN
 	UPDATE Users SET isActive = 0, dateUpdate = getdate()
+	OUTPUT inserted.id
+	WHERE id = @Id
+END;
+GO
+CREATE PROCEDURE SPactUser @ActivatorId int, @Id int
+AS
+if (dbo.checkUserRole(@ActivatorId,(SELECT id FROM Roles WHERE name = 'Admin')) = 1)
+BEGIN
+	UPDATE Users SET isActive = 1, dateUpdate = getdate()
 	OUTPUT inserted.id
 	WHERE id = @Id
 END;
